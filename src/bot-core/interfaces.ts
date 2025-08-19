@@ -69,6 +69,7 @@ export type BotConfig = {
   prod: boolean;
   is_trended: boolean;
   direction: 'long' | 'short';
+  // Первое значение - для проверки тренда, второе - для SmartVolOpen
   timeframe_trend: string[];
   symbol_filter?: string[];
   scheduled_notification: boolean;

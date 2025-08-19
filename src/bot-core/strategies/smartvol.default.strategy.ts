@@ -12,22 +12,26 @@ export class SmartVolDefaultStrategy implements Strategy {
     this.logger.log(`🚀 Стратегия onOpen для ${alert.symbol} @${alert.price}`);
 
     if (bot.mustCheckTrend()) {
+      // Используем первый таймфрейм для проверки тренда
+      const trendTimeframe = bot.cfg.timeframe_trend[0];
       this.logger.log(
-        `🔍 Проверяю тренд для ${alert.symbol} по таймфреймам: ${bot.cfg.timeframe_trend.join(',')}`,
+        `🔍 Проверяю тренд для ${alert.symbol} по таймфрейму тренда: ${trendTimeframe}`,
       );
 
-      // Используем новую логику с иерархией таймфреймов
-      const trendDirection = await bot.trendAgreesWithHierarchy(alert.symbol);
-      const mainTimeframe = bot.getMainTimeframe();
+      // Проверяем тренд только по первому таймфрейму
+      const trendDirection = await bot.trend.getCurrent(
+        alert.symbol,
+        trendTimeframe,
+      );
 
       this.logger.log(
-        `📊 Тренд для ${alert.symbol}: ${trendDirection}, главный таймфрейм: ${mainTimeframe}, направление бота: ${bot.cfg.direction}`,
+        `📊 Тренд для ${alert.symbol} по ${trendTimeframe}: ${trendDirection}, направление бота: ${bot.cfg.direction}`,
       );
 
       if (trendDirection !== bot.cfg.direction) {
         this.logger.log(`⏸ Тренд не совпадает, пропускаю`);
         await bot.notify(
-          `⏸ ${bot.name}: тренд ${trendDirection} не совпадает с направлением бота ${bot.cfg.direction} (${bot.cfg.timeframe_trend.join(',')})`,
+          `⏸ ${bot.name}: тренд ${trendDirection} не совпадает с направлением бота ${bot.cfg.direction} (тренд: ${trendTimeframe})`,
         );
         return;
       }

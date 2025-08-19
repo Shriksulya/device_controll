@@ -43,7 +43,7 @@ export class BotsScheduler {
       let trendMessage = `📊 ${bot.name} - Отчет о тренде\n`;
       trendMessage += `⏰ Время: ${new Date().toLocaleString('ru-RU')}\n`;
       trendMessage += `🎯 Направление бота: ${c.direction.toUpperCase()}\n`;
-      trendMessage += `📈 Таймфреймы: ${c.timeframe_trend.join(', ')}\n`;
+      trendMessage += `📈 Тренд: ${c.timeframe_trend[0]}, SmartVol: ${c.timeframe_trend[1]}\n`;
       if (c.symbol_filter && c.symbol_filter.length > 0) {
         trendMessage += `🎯 Символы: ${c.symbol_filter.join(', ')}\n`;
       }
