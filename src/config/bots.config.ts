@@ -1,0 +1,72 @@
+export default () => ({
+  bots: [
+    {
+      name: 'SmartVolListener',
+      enabled: true,
+      based_on_default_logic: true,
+      prod: false,
+      is_trended: true,
+      direction: 'long',
+      // Таймфреймы отсортированы по приоритету: часовой > минутный
+      timeframe_trend: ['1h', '1m'],
+      symbol_filter: [],
+      scheduled_notification: true,
+      scheduled_time: '1h',
+      exchange_profile: 'BITGET',
+      telegram_channel: 'bot1',
+      smartvol: { baseUsd: 200, addFraction: 0.5, leverage: 15 },
+      strategy: null,
+      maxFills: 4,
+    },
+    {
+      name: 'SmartVolListenerTrend',
+      enabled: true,
+      based_on_default_logic: true,
+      prod: false,
+      is_trended: true,
+      direction: 'long',
+      // Таймфреймы отсортированы по приоритету: часовой > минутный
+      timeframe_trend: ['2h', '3m'],
+      symbol_filter: [],
+      scheduled_notification: true,
+      scheduled_time: '1h',
+      exchange_profile: 'BITGET',
+      telegram_channel: 'bot2',
+      smartvol: { baseUsd: 400, addFraction: 0.3, leverage: 10 },
+      strategy: null,
+      maxFills: 4,
+    },
+  ],
+  telegram: {
+    bot1: {
+      token: '7976932775:AAHF3TMfRbcIN0RyTBeLG5oR3aLjaWuOngo',
+      chatId: '-4814413737',
+      name: 'SmartVol Bot 1 (Trend Checker)',
+    },
+    bot2: {
+      token: '8422880375:AAGzPLF3CgVOQcOleRTjRthMLt2hbMkDMoE',
+      chatId: '-4854279102',
+      name: 'SmartVol Bot 2 (Trend Checker)',
+    },
+  },
+  bitget: {
+    BITGET: {
+      baseURL: 'https://api.bitget.com',
+      key: 'KEY1',
+      secret: 'SEC1',
+      passphrase: 'PASS1',
+      productType: 'umcbl',
+      marginCoin: 'USDT',
+      allowedCsv: 'ETHUSDT_UMCBL,LINKUSDT_UMCBL,LTCUSDT_UMCBL',
+    },
+    BITGET2: {
+      baseURL: 'https://api.bitget.com',
+      key: 'KEY2',
+      secret: 'SEC2',
+      passphrase: 'PASS2',
+      productType: 'umcbl',
+      marginCoin: 'USDT',
+      allowedCsv: 'ETHUSDT_UMCBL,LINKUSDT_UMCBL,LTCUSDT_UMCBL',
+    },
+  },
+});
