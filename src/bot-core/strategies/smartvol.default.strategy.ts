@@ -1,12 +1,16 @@
 import { Strategy } from '../interfaces';
 import { toBitgetSymbolId } from '../utils';
 import { PositionsStore } from '../positions.store';
+import { VolumeUpService } from '../../services/volume-up.service';
 import { Logger } from '@nestjs/common';
 
 export class SmartVolDefaultStrategy implements Strategy {
   private readonly logger = new Logger(SmartVolDefaultStrategy.name);
 
-  constructor(private readonly store: PositionsStore) {}
+  constructor(
+    private readonly store: PositionsStore,
+    private readonly volumeUpService: VolumeUpService,
+  ) {}
 
   async onOpen(bot, alert) {
     this.logger.log(`🚀 Стратегия onOpen для ${alert.symbol} @${alert.price}`);
@@ -151,7 +155,12 @@ export class SmartVolDefaultStrategy implements Strategy {
     }
 
     const existing = await this.store.findOpen(bot.name, alert.symbol);
-    if (!existing) return this.onOpen(bot, alert);
+    if (!existing) {
+      this.logger.log(
+        `⚠️ Позиция ${alert.symbol} не найдена в БД для бота ${bot.name}, пропускаю докупку`,
+      );
+      return; // Убираем уведомление - просто пропускаем
+    }
 
     if (existing.fillsCount >= (bot.cfg.maxFills ?? 4)) {
       await bot.notify(`⚠️ ${bot.name}: max fills reached for ${alert.symbol}`);
@@ -226,6 +235,76 @@ export class SmartVolDefaultStrategy implements Strategy {
   }
 
   async onClose(bot, alert) {
+    // Проверяем существование позиции в БД перед попыткой закрытия
+    const existing = await this.store.findOpen(bot.name, alert.symbol);
+    if (!existing) {
+      this.logger.log(
+        `⚠️ Позиция ${alert.symbol} не найдена в БД для бота ${bot.name}, пропускаю закрытие`,
+      );
+      return; // Убираем уведомление - просто пропускаем
+    }
+
+    // Проверяем состояние Volume Up для закрытия
+    const closeState = this.volumeUpService.getCloseState(
+      alert.symbol,
+      bot.name,
+    );
+
+    if (!closeState) {
+      // Первый SmartVolClose - инициализируем состояние ожидания
+      this.logger.log(
+        `🚀 Первый SmartVolClose для ${alert.symbol} (${bot.name}) - инициализирую ожидание VolumeUp`,
+      );
+
+      // Получаем текущий VolumeUp для этого символа (берем первый доступный таймфрейм)
+      const volumeData = this.volumeUpService.getVolumeUpBySymbol(alert.symbol);
+      if (volumeData.length > 0) {
+        const initialVolume = volumeData[0].volume;
+        this.volumeUpService.initCloseState(
+          alert.symbol,
+          bot.name,
+          initialVolume,
+        );
+
+        this.logger.log(
+          `📊 Инициализировано ожидание закрытия для ${alert.symbol} с VolumeUp: ${initialVolume}`,
+        );
+
+        await bot.notify(
+          `⏳ ${bot.name}: Ожидаю VolumeUp для закрытия ${alert.symbol} (текущий: ${initialVolume}, нужно: ≥19)`,
+        );
+        return; // Не закрываем, ждем VolumeUp
+      } else {
+        this.logger.log(
+          `⚠️ VolumeUp данные для ${alert.symbol} не найдены, закрываю позицию`,
+        );
+        // Если нет VolumeUp данных, закрываем позицию
+      }
+    } else {
+      // Проверяем, можно ли закрывать
+      if (this.volumeUpService.canClosePosition(alert.symbol, bot.name)) {
+        this.logger.log(
+          `✅ VolumeUp ${closeState.currentVolume} >= 19 для ${alert.symbol} (${bot.name}) - закрываю позицию!`,
+        );
+
+        await bot.notify(
+          `✅ ${bot.name}: VolumeUp ${closeState.currentVolume} >= 19, закрываю позицию ${alert.symbol}`,
+        );
+
+        // Помечаем позицию как закрытую в VolumeUpService
+        this.volumeUpService.markPositionClosed(alert.symbol, bot.name);
+      } else {
+        this.logger.log(
+          `⏳ VolumeUp ${closeState.currentVolume} < 19 для ${alert.symbol} (${bot.name}) - продолжаю ждать`,
+        );
+
+        await bot.notify(
+          `⏳ ${bot.name}: VolumeUp ${closeState.currentVolume} < 19, продолжаю ждать для ${alert.symbol}`,
+        );
+        return; // Не закрываем, продолжаем ждать
+      }
+    }
+
     // Проверяем тренд при закрытии с учетом иерархии
     if (bot.mustCheckTrend()) {
       this.logger.log(
@@ -250,18 +329,6 @@ export class SmartVolDefaultStrategy implements Strategy {
           `✅ Главный тренд не изменился, но закрываю по сигналу`,
         );
       }
-    }
-
-    // Проверяем существование позиции в БД перед попыткой закрытия
-    const existing = await this.store.findOpen(bot.name, alert.symbol);
-    if (!existing) {
-      this.logger.log(
-        `⚠️ Позиция ${alert.symbol} не найдена в БД для бота ${bot.name}`,
-      );
-      await bot.notify(
-        `⚠️ ${bot.name}: позиция ${alert.symbol} не найдена в БД, пропускаю закрытие`,
-      );
-      return;
     }
 
     this.logger.log(
@@ -307,6 +374,26 @@ export class SmartVolDefaultStrategy implements Strategy {
         );
         throw error; // Пробрасываем ошибку дальше
       }
+    }
+  }
+
+  async onVolumeUp(bot, alert) {
+    this.logger.log(
+      `📊 Стратегия onVolumeUp для ${alert.symbol} (${alert.timeframe}) с объемом ${alert.volume}`,
+    );
+
+    // Volume Up не требует действий от бота, только логирование
+    this.logger.log(
+      `📈 Объем для ${alert.symbol} (${alert.timeframe}) увеличен до ${alert.volume}`,
+    );
+
+    // Можно добавить дополнительную логику, если потребуется
+    // Например, уведомления о высоком объеме
+    if (alert.volume > 1000000) {
+      // Если объем больше 1M
+      await bot.notify(
+        `📊 ${bot.name}: Высокий объем для ${alert.symbol} (${alert.timeframe}): ${alert.volume.toLocaleString()}`,
+      );
     }
   }
 }

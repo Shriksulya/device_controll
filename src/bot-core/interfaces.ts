@@ -1,4 +1,8 @@
-export type SmartVolType = 'SmartVolOpen' | 'SmartVolAdd' | 'SmartVolClose';
+export type SmartVolType =
+  | 'SmartVolOpen'
+  | 'SmartVolAdd'
+  | 'SmartVolClose'
+  | 'VolumeUp';
 
 export type BaseAlert = {
   kind: 'smartvol';
@@ -10,8 +14,17 @@ export type BaseAlert = {
 export type SmartVolOpenAlert = BaseAlert & { type: 'SmartVolOpen' };
 export type SmartVolAddAlert = BaseAlert & { type: 'SmartVolAdd' };
 export type SmartVolCloseAlert = BaseAlert & { type: 'SmartVolClose' };
+export type VolumeUpAlert = BaseAlert & {
+  type: 'VolumeUp';
+  volume: number;
+  timeframe: string;
+};
 
-export type Alert = SmartVolOpenAlert | SmartVolAddAlert | SmartVolCloseAlert;
+export type Alert =
+  | SmartVolOpenAlert
+  | SmartVolAddAlert
+  | SmartVolCloseAlert
+  | VolumeUpAlert;
 
 export interface ExchangeGateway {
   ensureLeverage?(symbolId: string, leverage: string): Promise<void>;
@@ -60,6 +73,7 @@ export interface Strategy {
   onOpen(bot: any, alert: SmartVolOpenAlert): Promise<void>;
   onAdd(bot: any, alert: SmartVolAddAlert): Promise<void>;
   onClose(bot: any, alert: SmartVolCloseAlert): Promise<void>;
+  onVolumeUp(bot: any, alert: VolumeUpAlert): Promise<void>;
 }
 export type BotConfig = {
   name: string;

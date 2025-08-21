@@ -6,9 +6,11 @@ import {
   Logger,
   Get,
   Param,
+  Query,
 } from '@nestjs/common';
 import { BotsRegistry } from '../bot-core/bots.registry';
 import { TelegramService } from '../services/telegram.service';
+import { VolumeUpService } from '../services/volume-up.service';
 
 @Controller('/alerts')
 export class AlertsController {
@@ -17,6 +19,7 @@ export class AlertsController {
   constructor(
     private readonly reg: BotsRegistry,
     private readonly telegram: TelegramService,
+    private readonly volumeUpService: VolumeUpService,
   ) {}
 
   @Post()
@@ -27,8 +30,33 @@ export class AlertsController {
       throw new BadRequestException('SmartVol payload required');
 
     const type = String(p.alertName);
-    if (!['SmartVolOpen', 'SmartVolAdd', 'SmartVolClose'].includes(type))
+    if (
+      !['SmartVolOpen', 'SmartVolAdd', 'SmartVolClose', 'VolumeUp'].includes(
+        type,
+      )
+    )
       throw new BadRequestException(`Unknown type ${type}`);
+
+    // Обрабатываем Volume Up отдельно
+    if (type === 'VolumeUp') {
+      if (p.volume == null)
+        throw new BadRequestException('volume is required for VolumeUp alerts');
+      if (!p.timeframe)
+        throw new BadRequestException(
+          'timeframe is required for VolumeUp alerts',
+        );
+
+      this.logger.log(
+        `📊 Обрабатываю Volume Up для ${p.symbol} (${p.timeframe}): ${p.volume}`,
+      );
+      this.volumeUpService.saveVolumeUp(
+        String(p.symbol),
+        String(p.timeframe),
+        Number(p.volume),
+      );
+
+      return { ok: true, message: 'Volume Up data saved' };
+    }
 
     const alert = {
       kind: 'smartvol',
@@ -132,5 +160,137 @@ export class AlertsController {
         timestamp: new Date().toISOString(),
       };
     }
+  }
+
+  @Get('/volume-up/:symbol')
+  async getVolumeUp(
+    @Param('symbol') symbol: string,
+    @Query('timeframe') timeframe: string,
+  ) {
+    if (!timeframe) {
+      throw new BadRequestException('timeframe query parameter is required');
+    }
+
+    this.logger.log(`📊 Запрос Volume Up данных для ${symbol} (${timeframe})`);
+
+    const data = this.volumeUpService.getVolumeUp(symbol, timeframe);
+    if (!data) {
+      return {
+        ok: false,
+        message: `No active Volume Up data for ${symbol} (${timeframe})`,
+        data: null,
+      };
+    }
+
+    return {
+      ok: true,
+      message: `Volume Up data found for ${symbol} (${timeframe})`,
+      data,
+    };
+  }
+
+  @Get('/volume-up/symbol/:symbol')
+  async getVolumeUpBySymbol(@Param('symbol') symbol: string) {
+    this.logger.log(`📊 Запрос Volume Up данных для символа ${symbol}`);
+
+    const data = this.volumeUpService.getVolumeUpBySymbol(symbol);
+
+    return {
+      ok: true,
+      message: `Found ${data.length} active Volume Up records for ${symbol}`,
+      data,
+      count: data.length,
+    };
+  }
+
+  @Get('/volume-up/timeframe/:timeframe')
+  async getVolumeUpByTimeframe(@Param('timeframe') timeframe: string) {
+    this.logger.log(`📊 Запрос Volume Up данных для таймфрейма ${timeframe}`);
+
+    const data = this.volumeUpService.getVolumeUpByTimeframe(timeframe);
+
+    return {
+      ok: true,
+      message: `Found ${data.length} active Volume Up records for timeframe ${timeframe}`,
+      data,
+      count: data.length,
+    };
+  }
+
+  @Get('/volume-up')
+  async getAllVolumeUp() {
+    this.logger.log(`📊 Запрос всех активных Volume Up данных`);
+
+    const data = this.volumeUpService.getAllActiveVolumeUp();
+    const stats = this.volumeUpService.getStats();
+
+    return {
+      ok: true,
+      message: `Found ${data.length} active Volume Up records`,
+      data,
+      stats,
+    };
+  }
+
+  @Post('/volume-up/clear')
+  async clearVolumeUp() {
+    this.logger.log(`🧹 Очистка всех Volume Up данных`);
+
+    this.volumeUpService.clearAll();
+
+    return {
+      ok: true,
+      message: 'All Volume Up data cleared',
+    };
+  }
+
+  @Get('/volume-up/close-states')
+  async getAllCloseStates() {
+    this.logger.log(`📊 Запрос всех активных состояний закрытия Volume Up`);
+
+    const data = this.volumeUpService.getAllCloseStates();
+
+    return {
+      ok: true,
+      message: `Found ${data.length} active close states`,
+      data,
+      count: data.length,
+    };
+  }
+
+  @Get('/volume-up/close-states/:symbol/:botName')
+  async getCloseState(
+    @Param('symbol') symbol: string,
+    @Param('botName') botName: string,
+  ) {
+    this.logger.log(`📊 Запрос состояния закрытия для ${symbol} (${botName})`);
+
+    const data = this.volumeUpService.getCloseState(symbol, botName);
+    if (!data) {
+      return {
+        ok: false,
+        message: `No active close state for ${symbol} (${botName})`,
+        data: null,
+      };
+    }
+
+    return {
+      ok: true,
+      message: `Close state found for ${symbol} (${botName})`,
+      data,
+    };
+  }
+
+  @Post('/volume-up/close-states/clear')
+  async clearAllCloseStates() {
+    this.logger.log(`🧹 Очистка всех состояний закрытия Volume Up`);
+
+    // Очищаем все Volume Up данные (включая состояния закрытия)
+    this.volumeUpService.clearAll();
+
+    return {
+      ok: true,
+      message: 'All Volume Up data and close states cleared',
+    };
   }
 }

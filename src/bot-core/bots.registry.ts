@@ -8,6 +8,7 @@ import { TelegramNotifier } from './adapters/notifier.telegram';
 import { TrendServiceProvider } from './adapters/trend.provider';
 import { TrendService } from '../trend/trend.service';
 import { TelegramService } from '../services/telegram.service';
+import { VolumeUpService } from '../services/volume-up.service';
 import { PositionsStore } from './positions.store';
 import { SmartVolDefaultStrategy } from './strategies/smartvol.default.strategy';
 import { BitgetService } from '../integrations/bitget/bitget.service';
@@ -21,6 +22,7 @@ export class BotsRegistry {
     private readonly cfg: ConfigService,
     private readonly trend: TrendService,
     private readonly telegram: TelegramService,
+    private readonly volumeUp: VolumeUpService,
     private readonly positions: PositionsStore,
     private readonly bitget: BitgetService,
   ) {}
@@ -95,7 +97,10 @@ export class BotsRegistry {
         : new NoopExchange();
       const notifier = new TelegramNotifier(this.telegram, c.telegram_channel);
 
-      const strategy: Strategy = new SmartVolDefaultStrategy(this.positions);
+      const strategy: Strategy = new SmartVolDefaultStrategy(
+        this.positions,
+        this.volumeUp,
+      );
 
       const engine = new BotEngine(
         c,

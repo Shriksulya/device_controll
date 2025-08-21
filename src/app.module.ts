@@ -10,6 +10,7 @@ import { AlertsController } from './alerts/alerts.controller';
 import { BotsRegistry } from './bot-core/bots.registry';
 import { TrendService } from './trend/trend.service';
 import { TelegramService } from './services/telegram.service';
+import { VolumeUpService } from './services/volume-up.service';
 import { PositionsStore } from './bot-core/positions.store';
 import { IntegrationsModule } from './integrations/bitget/integrations.module';
 import { AppInitService } from './app.init.service';
@@ -39,6 +40,7 @@ import { AppInitService } from './app.init.service';
     BotsRegistry,
     TrendService,
     TelegramService,
+    VolumeUpService,
     PositionsStore,
     AppInitService,
   ],

@@ -8,11 +8,31 @@ function toAlert(p: any): Alert {
   if (!('alertName' in p))
     throw new BadRequestException('Only SmartVol alerts are supported');
   const type = String(p.alertName) as SmartVolType;
-  if (!['SmartVolOpen', 'SmartVolAdd', 'SmartVolClose'].includes(type)) {
+  if (
+    !['SmartVolOpen', 'SmartVolAdd', 'SmartVolClose', 'VolumeUp'].includes(type)
+  ) {
     throw new BadRequestException(`Unknown SmartVol type: ${type}`);
   }
   if (!p.symbol || p.price == null)
     throw new BadRequestException('symbol and price are required');
+
+  if (type === 'VolumeUp') {
+    if (p.volume == null)
+      throw new BadRequestException('volume is required for VolumeUp alerts');
+    if (!p.timeframe)
+      throw new BadRequestException(
+        'timeframe is required for VolumeUp alerts',
+      );
+    return {
+      kind: 'smartvol',
+      type,
+      symbol: String(p.symbol),
+      price: String(p.price),
+      timeframe: String(p.timeframe),
+      volume: Number(p.volume),
+    };
+  }
+
   return {
     kind: 'smartvol',
     type,
