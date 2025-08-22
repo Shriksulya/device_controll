@@ -107,7 +107,7 @@ export class BotsRegistry {
       // Выбираем стратегию в зависимости от конфигурации
       let strategy: Strategy;
       if (c.strategy === 'domination') {
-        strategy = new DominationStrategy(this.positions);
+        strategy = new DominationStrategy(this.positions, this.telegram);
         this.log.log(`🎯 Бот ${c.name} использует Domination стратегию`);
       } else {
         strategy = new SmartVolDefaultStrategy(this.positions, this.volumeUp);

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Strategy } from '../interfaces';
 import { PositionsStore } from '../positions.store';
+import { TelegramService } from '../../services/telegram.service';
 
 export interface DominationPosition {
   id: string;
@@ -38,7 +39,10 @@ export class DominationStrategy
     }
   }
 
-  constructor(private readonly store: PositionsStore) {}
+  constructor(
+    private readonly store: PositionsStore,
+    private readonly telegramService: TelegramService,
+  ) {}
 
   /**
    * Проверяет таймауты continuation (5 минут)
@@ -223,7 +227,11 @@ export class DominationStrategy
   /**
    * Закрывает позицию
    */
-  private async closePosition(position: any, reason: string): Promise<void> {
+  private async closePosition(
+    position: any,
+    reason: string,
+    bot?: any,
+  ): Promise<void> {
     this.logger.log(
       `🛑 Закрываю позицию ${position.symbol} (${position.botName}): ${reason}`,
     );
@@ -243,6 +251,32 @@ export class DominationStrategy
         `⏱️ Длительность: ${duration}\n` +
         `📝 Причина: ${reason}`,
     );
+
+    // Отправляем уведомление о выходе из позиции
+    try {
+      const sideEmoji = position.meta?.side === 'long' ? '🟢' : '🔴';
+      const sideText = position.meta?.side === 'long' ? 'LONG' : 'SHORT';
+
+      const message =
+        `${sideEmoji} ${position.botName}: ${sideText} ${position.symbol} ЗАКРЫТА\n` +
+        `💰 Вход: $${position.avgEntryPrice}\n` +
+        `📅 Вход: ${position.openedAt?.toLocaleString() || 'N/A'}\n` +
+        `📅 Выход: ${exitTime.toLocaleString()}\n` +
+        `⏱️ Длительность: ${duration}\n` +
+        `📝 Причина: ${reason}`;
+
+      if (bot && bot.notify) {
+        // Если передан объект бота, используем его для уведомления
+        await bot.notify(message);
+      } else {
+        // Иначе отправляем через TelegramService
+        await this.telegramService.sendMessage(message, 'domination');
+      }
+    } catch (error) {
+      this.logger.error(
+        `❌ Ошибка отправки уведомления о выходе: ${error.message}`,
+      );
+    }
   }
 
   /**
