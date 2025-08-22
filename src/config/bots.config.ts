@@ -36,6 +36,23 @@ export default () => ({
       strategy: null,
       maxFills: 4,
     },
+    {
+      name: 'DominationListener',
+      enabled: true,
+      based_on_default_logic: false, // Использует Domination стратегию
+      prod: false,
+      is_trended: false, // Domination не зависит от тренда
+      direction: 'both', // Может быть и long и short
+      timeframe_trend: ['5m'], // Таймфреймы для Domination
+      symbol_filter: [], // Все символы
+      scheduled_notification: false, // Уведомления только по событиям
+      scheduled_time: null,
+      exchange_profile: 'BITGET',
+      telegram_channel: 'domination', // Новый канал
+      smartvol: null, // Не использует SmartVol логику
+      strategy: 'domination', // Указываем тип стратегии
+      maxFills: 1, // Только одна позиция на символ
+    },
   ],
   telegram: {
     bot1: {
@@ -47,6 +64,11 @@ export default () => ({
       token: '8422880375:AAGzPLF3CgVOQcOleRTjRthMLt2hbMkDMoE',
       chatId: '-4854279102',
       name: 'SmartVol Bot 2 (Trend Checker)',
+    },
+    domination: {
+      token: '8240226135:AAGWhAF8qTqgcs1BBu_3iDZ6mWEdNenraAY', // Используем тот же токен
+      chatId: '-4861757921', // Или укажите другой chatId
+      name: 'Domination Bot',
     },
   },
   bitget: {

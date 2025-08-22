@@ -61,12 +61,12 @@ export interface TrendProvider {
   canAddPosition(
     symbol: string,
     timeframes: string[],
-    expectedDirection: 'long' | 'short',
+    expectedDirection: 'long' | 'short' | 'both',
   ): Promise<boolean>;
   shouldClosePosition(
     symbol: string,
     timeframes: string[],
-    currentDirection: 'long' | 'short',
+    currentDirection: 'long' | 'short' | 'both',
   ): Promise<boolean>;
 }
 export interface Strategy {
@@ -82,14 +82,14 @@ export type BotConfig = {
   strategy?: string | null;
   prod: boolean;
   is_trended: boolean;
-  direction: 'long' | 'short';
+  direction: 'long' | 'short' | 'both';
   // Первое значение - для проверки тренда, второе - для SmartVolOpen
   timeframe_trend: string[];
   symbol_filter?: string[];
   scheduled_notification: boolean;
   scheduled_time: string | null;
   exchange_profile: 'BITGET' | 'BITGET2';
-  telegram_channel: 'bot1' | 'bot2' | 'bot3' | 'bot4';
-  smartvol: { baseUsd: number; addFraction: number; leverage: number };
+  telegram_channel: 'bot1' | 'bot2' | 'bot3' | 'bot4' | 'domination';
+  smartvol?: { baseUsd: number; addFraction: number; leverage: number } | null;
   maxFills?: number;
 };

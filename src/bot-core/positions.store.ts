@@ -111,7 +111,7 @@ export class PositionsStore {
     return `${minutes}м`;
   }
 
-  // Получить сводку по всем открытым позициям бота
+  // Получает сводку по всем открытым позициям бота
   async getBotSummary(botName: string, currentPrices: Record<string, number>) {
     const openPositions = await this.repo.find({
       where: { botName, status: 'open' },
@@ -162,5 +162,20 @@ export class PositionsStore {
       totalPnLPercent: totalPnLPercent.toFixed(2),
       positions,
     };
+  }
+
+  // Получает все открытые позиции
+  async getAllOpenPositions() {
+    return this.repo.find({ where: { status: 'open' } });
+  }
+
+  // Обновляет позицию
+  async updatePosition(position: PositionEntity) {
+    return this.repo.save(position);
+  }
+
+  // Получает все открытые позиции для конкретного бота
+  async getBotOpenPositions(botName: string) {
+    return this.repo.find({ where: { botName, status: 'open' } });
   }
 }

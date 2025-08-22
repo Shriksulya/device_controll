@@ -19,7 +19,7 @@ export class TrendServiceProvider implements TrendProvider {
   canAddPosition(
     symbol: string,
     timeframes: string[],
-    expectedDirection: 'long' | 'short',
+    expectedDirection: 'long' | 'short' | 'both',
   ) {
     return this.svc.canAddPosition(symbol, timeframes, expectedDirection);
   }
@@ -27,7 +27,7 @@ export class TrendServiceProvider implements TrendProvider {
   shouldClosePosition(
     symbol: string,
     timeframes: string[],
-    currentDirection: 'long' | 'short',
+    currentDirection: 'long' | 'short' | 'both',
   ) {
     return this.svc.shouldClosePosition(symbol, timeframes, currentDirection);
   }

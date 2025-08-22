@@ -14,6 +14,8 @@ import { VolumeUpService } from './services/volume-up.service';
 import { PositionsStore } from './bot-core/positions.store';
 import { IntegrationsModule } from './integrations/bitget/integrations.module';
 import { AppInitService } from './app.init.service';
+import { DominationStrategy } from './bot-core/strategies/domination.strategy';
+import { AlertsRouter } from './bot-core/alerts.router';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { AppInitService } from './app.init.service';
     VolumeUpService,
     PositionsStore,
     AppInitService,
+    DominationStrategy,
+    AlertsRouter,
   ],
 })
 export class AppModule {}

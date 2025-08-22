@@ -11,6 +11,8 @@ import {
 import { BotsRegistry } from '../bot-core/bots.registry';
 import { TelegramService } from '../services/telegram.service';
 import { VolumeUpService } from '../services/volume-up.service';
+import { DominationStrategy } from '../bot-core/strategies/domination.strategy';
+import { AlertsRouter } from '../bot-core/alerts.router';
 
 @Controller('/alerts')
 export class AlertsController {
@@ -20,6 +22,8 @@ export class AlertsController {
     private readonly reg: BotsRegistry,
     private readonly telegram: TelegramService,
     private readonly volumeUpService: VolumeUpService,
+    private readonly dominationStrategy: DominationStrategy,
+    private readonly alertsRouter: AlertsRouter,
   ) {}
 
   @Post()
@@ -27,14 +31,23 @@ export class AlertsController {
     this.logger.log(`📨 Получен алерт: ${JSON.stringify(p)}`);
 
     if (!p || typeof p !== 'object' || !p.alertName)
-      throw new BadRequestException('SmartVol payload required');
+      throw new BadRequestException('Alert payload required');
 
     const type = String(p.alertName);
-    if (
-      !['SmartVolOpen', 'SmartVolAdd', 'SmartVolClose', 'VolumeUp'].includes(
-        type,
-      )
-    )
+
+    // Проверяем все поддерживаемые типы алертов
+    const supportedTypes = [
+      'SmartVolOpen',
+      'SmartVolAdd',
+      'SmartVolClose',
+      'VolumeUp',
+      'Buyer domination',
+      'Seller domination',
+      'Continuation of buyer dominance',
+      'Continuation of seller dominance',
+    ];
+
+    if (!supportedTypes.includes(type))
       throw new BadRequestException(`Unknown type ${type}`);
 
     // Обрабатываем Volume Up отдельно
@@ -58,50 +71,30 @@ export class AlertsController {
       return { ok: true, message: 'Volume Up data saved' };
     }
 
-    const alert = {
-      kind: 'smartvol',
-      type,
-      symbol: String(p.symbol),
-      price: String(p.price),
-      timeframe: p.timeframe,
-    };
-
-    this.logger.log(`🔍 Обрабатываю алерт: ${JSON.stringify(alert)}`);
-
-    const bots = this.reg.all();
-    this.logger.log(`🤖 Найдено ботов: ${bots.length}`);
-
-    for (const bot of bots) {
-      this.logger.log(`🤖 Обрабатываю бота: ${bot.name}`);
-
-      const filter = bot.cfg.symbol_filter || [];
-      if (filter.length && !filter.includes(alert.symbol)) {
-        this.logger.log(
-          `⏭️ Бот ${bot.name} пропускает ${alert.symbol} (фильтр: ${filter.join(',')})`,
-        );
-        continue;
-      }
-
-      this.logger.log(`✅ Бот ${bot.name} обрабатывает ${alert.symbol}`);
-      await bot.process(alert as any);
+    // Для всех остальных алертов используем alerts.router
+    try {
+      await this.alertsRouter.handle(p);
+      this.logger.log(`✅ Алерт ${type} обработан успешно через router`);
+      return { ok: true, message: `Alert ${type} processed successfully` };
+    } catch (error) {
+      this.logger.error(`❌ Ошибка обработки алерта ${type}: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to process alert: ${error.message}`,
+      );
     }
-
-    this.logger.log(`✅ Алерт обработан успешно`);
-    return { ok: true };
   }
 
   @Get('/test-telegram/:botType')
   async testTelegram(@Param('botType') botType: string) {
     this.logger.log(`🧪 Тестирую телеграм для ${botType}`);
 
-    if (!['bot1', 'bot2', 'bot3', 'bot4'].includes(botType)) {
+    if (!['bot1', 'bot2', 'bot3', 'bot4', 'domination'].includes(botType)) {
       throw new BadRequestException(`Invalid bot type: ${botType}`);
     }
 
     try {
       const result = await this.telegram.testConnection(botType as any);
       if (result) {
-        // Отправляем тестовое сообщение
         await this.telegram.sendMessage(
           `🧪 Тестовое сообщение от ${botType} - ${new Date().toISOString()}`,
           botType as any,
@@ -109,21 +102,18 @@ export class AlertsController {
         return {
           ok: true,
           message: `Telegram test successful for ${botType}`,
-          timestamp: new Date().toISOString(),
         };
       } else {
         return {
           ok: false,
           message: `Telegram test failed for ${botType}`,
-          timestamp: new Date().toISOString(),
         };
       }
     } catch (error) {
       this.logger.error(`❌ Ошибка тестирования телеграма: ${error.message}`);
       return {
         ok: false,
-        message: `Telegram test error: ${error.message}`,
-        timestamp: new Date().toISOString(),
+        message: `Telegram test failed for ${botType}`,
       };
     }
   }
@@ -137,12 +127,12 @@ export class AlertsController {
       `📤 Отправляю сообщение в телеграм через ${botType}: ${body.message}`,
     );
 
-    if (!['bot1', 'bot2', 'bot3', 'bot4'].includes(botType)) {
-      throw new BadRequestException(`Invalid bot type: ${botType}`);
+    if (!body.message) {
+      throw new BadRequestException('message is required');
     }
 
-    if (!body.message) {
-      throw new BadRequestException('Message is required');
+    if (!['bot1', 'bot2', 'bot3', 'bot4', 'domination'].includes(botType)) {
+      throw new BadRequestException(`Invalid bot type: ${botType}`);
     }
 
     try {
@@ -150,14 +140,12 @@ export class AlertsController {
       return {
         ok: true,
         message: `Message sent successfully via ${botType}`,
-        timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error(`❌ Ошибка отправки сообщения: ${error.message}`);
+      this.logger.error(`❌ Ошибка отправки в телеграм: ${error.message}`);
       return {
         ok: false,
-        message: `Failed to send message: ${error.message}`,
-        timestamp: new Date().toISOString(),
+        message: `Failed to send message via ${botType}`,
       };
     }
   }
@@ -291,6 +279,72 @@ export class AlertsController {
     return {
       ok: true,
       message: 'All Volume Up data and close states cleared',
+    };
+  }
+
+  // Domination позиции
+  @Get('/domination/positions')
+  async getAllDominationPositions() {
+    this.logger.log(`📊 Запрос всех открытых позиций Domination`);
+
+    const positions = await this.dominationStrategy.getAllOpenPositions();
+
+    return {
+      ok: true,
+      message: `Found ${positions.length} open Domination positions`,
+      data: positions,
+      count: positions.length,
+    };
+  }
+
+  @Get('/domination/positions/:botName/:symbol')
+  async getDominationPosition(
+    @Param('botName') botName: string,
+    @Param('symbol') symbol: string,
+  ) {
+    this.logger.log(`📊 Запрос позиции Domination для ${symbol} (${botName})`);
+
+    const position = await this.dominationStrategy.getPosition(botName, symbol);
+
+    if (!position) {
+      return {
+        ok: false,
+        message: `No Domination position found for ${symbol} (${botName})`,
+        data: null,
+      };
+    }
+
+    return {
+      ok: true,
+      message: `Domination position found for ${symbol} (${botName})`,
+      data: position,
+    };
+  }
+
+  @Post('/domination/positions/clear')
+  async clearAllDominationPositions() {
+    this.logger.log(`🧹 Очистка всех позиций Domination`);
+
+    await this.dominationStrategy.clearAllPositions();
+
+    return {
+      ok: true,
+      message: 'All Domination positions cleared',
+    };
+  }
+
+  @Get('/domination/test')
+  async testDomination() {
+    return {
+      ok: true,
+      message: 'Domination strategy is working',
+      timestamp: new Date().toISOString(),
+      supportedAlerts: [
+        'Buyer domination',
+        'Seller domination',
+        'Continuation of buyer dominance',
+        'Continuation of seller dominance',
+      ],
     };
   }
 }

@@ -11,6 +11,7 @@ import { TelegramService } from '../services/telegram.service';
 import { VolumeUpService } from '../services/volume-up.service';
 import { PositionsStore } from './positions.store';
 import { SmartVolDefaultStrategy } from './strategies/smartvol.default.strategy';
+import { DominationStrategy } from './strategies/domination.strategy';
 import { BitgetService } from '../integrations/bitget/bitget.service';
 
 @Injectable()
@@ -46,19 +47,25 @@ export class BotsRegistry {
         continue;
       }
 
-      // Проверяем конфигурацию бота
-      if (!c.smartvol?.baseUsd || isNaN(c.smartvol.baseUsd)) {
-        this.log.error(
-          `❌ Ошибка конфигурации для бота ${c.name}: baseUsd не определен или не является числом`,
-        );
-        continue;
-      }
+      // Проверяем конфигурацию в зависимости от стратегии
+      if (c.strategy === 'domination') {
+        // Для Domination стратегии проверяем только telegram
+        this.log.log(`🎯 Бот ${c.name} использует Domination стратегию`);
+      } else {
+        // Для SmartVol стратегии проверяем smartvol конфигурацию
+        if (!c.smartvol?.baseUsd || isNaN(c.smartvol.baseUsd)) {
+          this.log.error(
+            `❌ Ошибка конфигурации для бота ${c.name}: baseUsd не определен или не является числом`,
+          );
+          continue;
+        }
 
-      if (!c.smartvol?.addFraction || isNaN(c.smartvol.addFraction)) {
-        this.log.error(
-          `❌ Ошибка конфигурации для бота ${c.name}: addFraction не определен или не является числом`,
-        );
-        continue;
+        if (!c.smartvol?.addFraction || isNaN(c.smartvol.addFraction)) {
+          this.log.error(
+            `❌ Ошибка конфигурации для бота ${c.name}: addFraction не определен или не является числом`,
+          );
+          continue;
+        }
       }
 
       // Проверяем конфигурацию телеграма
@@ -97,10 +104,15 @@ export class BotsRegistry {
         : new NoopExchange();
       const notifier = new TelegramNotifier(this.telegram, c.telegram_channel);
 
-      const strategy: Strategy = new SmartVolDefaultStrategy(
-        this.positions,
-        this.volumeUp,
-      );
+      // Выбираем стратегию в зависимости от конфигурации
+      let strategy: Strategy;
+      if (c.strategy === 'domination') {
+        strategy = new DominationStrategy(this.positions);
+        this.log.log(`🎯 Бот ${c.name} использует Domination стратегию`);
+      } else {
+        strategy = new SmartVolDefaultStrategy(this.positions, this.volumeUp);
+        this.log.log(`📊 Бот ${c.name} использует SmartVol стратегию`);
+      }
 
       const engine = new BotEngine(
         c,

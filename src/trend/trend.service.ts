@@ -175,9 +175,12 @@ export class TrendService {
   async canAddPosition(
     symbol: string,
     timeframes: string[],
-    expectedDirection: 'long' | 'short',
+    expectedDirection: 'long' | 'short' | 'both',
   ): Promise<boolean> {
     if (!timeframes?.length) return false;
+
+    // Для 'both' направления всегда разрешаем докупку
+    if (expectedDirection === 'both') return true;
 
     const sortedTimeframes = timeframes.sort((a, b) => {
       const priorityA = this.getTimeframePriority(a);
@@ -203,9 +206,12 @@ export class TrendService {
   async shouldClosePosition(
     symbol: string,
     timeframes: string[],
-    currentDirection: 'long' | 'short',
+    currentDirection: 'long' | 'short' | 'both',
   ): Promise<boolean> {
     if (!timeframes?.length) return false;
+
+    // Для 'both' направления никогда не закрываем автоматически по тренду
+    if (currentDirection === 'both') return false;
 
     const sortedTimeframes = timeframes.sort((a, b) => {
       const priorityA = this.getTimeframePriority(a);
