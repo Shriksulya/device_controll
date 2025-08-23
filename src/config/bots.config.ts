@@ -53,6 +53,24 @@ export default () => ({
       strategy: 'domination', // Указываем тип стратегии
       maxFills: 1, // Только одна позиция на символ
     },
+    {
+      name: 'SmartVolPartialClose',
+      enabled: true,
+      based_on_default_logic: false, // Использует Partial Close стратегию
+      prod: false,
+      is_trended: false, // Тренд не проверяется
+      direction: 'long',
+      // Таймфреймы для сигналов входа/выхода
+      timeframe_trend: ['1h', '4h'],
+      symbol_filter: [], // Все символы
+      scheduled_notification: true,
+      scheduled_time: '1h',
+      exchange_profile: 'BITGET',
+      telegram_channel: 'bot3', // Используем bot3 канал
+      smartvol: { baseUsd: 300, addFraction: 0.5, leverage: 12 },
+      strategy: 'partial-close', // Указываем тип стратегии
+      maxFills: 4, // Максимум 4 докупки
+    },
   ],
   telegram: {
     bot1: {
@@ -69,6 +87,11 @@ export default () => ({
       token: '8240226135:AAGWhAF8qTqgcs1BBu_3iDZ6mWEdNenraAY', // Используем тот же токен
       chatId: '-4861757921', // Или укажите другой chatId
       name: 'Domination Bot',
+    },
+    bot3: {
+      token: '8368325139:AAEWsn7DZNFjnRfGquToJhbnoMc3ytTwOBI', // Используем тот же токен
+      chatId: '-4971796795', // Или укажите другой chatId
+      name: 'SmartVol Partial Close Bot or +25',
     },
   },
   bitget: {

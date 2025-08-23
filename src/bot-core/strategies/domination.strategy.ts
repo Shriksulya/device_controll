@@ -339,6 +339,14 @@ export class DominationStrategy
     // Не используется
   }
 
+  async onBigClose(bot: any, alert: any): Promise<void> {
+    // Не используется
+  }
+
+  async onBigAdd(bot: any, alert: any): Promise<void> {
+    // Не используется
+  }
+
   async onVolumeUp(bot: any, alert: any): Promise<void> {
     // Не используется
   }

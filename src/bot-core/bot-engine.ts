@@ -5,9 +5,11 @@ import {
   Notifier,
   Strategy,
   TrendProvider,
-  SmartVolOpenAlert,
+  SmartOpenAlert,
   SmartVolAddAlert,
-  SmartVolCloseAlert,
+  SmartCloseAlert,
+  SmartBigCloseAlert,
+  SmartBigAddAlert,
 } from './interfaces';
 import { Logger } from '@nestjs/common';
 
@@ -130,17 +132,25 @@ export class BotEngine {
       `🔄 Бот ${this.name} обрабатывает алерт: ${(alert as any).type} для ${alert.symbol} @${alert.price}`,
     );
 
-    if ((alert as any).type === 'SmartVolOpen') {
+    if ((alert as any).type === 'SmartOpen') {
       this.logger.log(`📈 Открываю позицию для ${alert.symbol}`);
-      return this.strategy.onOpen(this, alert as SmartVolOpenAlert);
+      return this.strategy.onOpen(this, alert as SmartOpenAlert);
     }
     if ((alert as any).type === 'SmartVolAdd') {
       this.logger.log(`➕ Докупаю позицию для ${alert.symbol}`);
       return this.strategy.onAdd(this, alert as SmartVolAddAlert);
     }
-    if ((alert as any).type === 'SmartVolClose') {
+    if ((alert as any).type === 'SmartClose') {
       this.logger.log(`🛑 Закрываю позицию для ${alert.symbol}`);
-      return this.strategy.onClose(this, alert as SmartVolCloseAlert);
+      return this.strategy.onClose(this, alert as SmartCloseAlert);
+    }
+    if ((alert as any).type === 'SmartBigClose') {
+      this.logger.log(`🚨 Экстренное закрытие позиции для ${alert.symbol}`);
+      return this.strategy.onBigClose(this, alert as SmartBigCloseAlert);
+    }
+    if ((alert as any).type === 'SmartBigAdd') {
+      this.logger.log(`🚀 Большая докупка для ${alert.symbol}`);
+      return this.strategy.onBigAdd(this, alert as SmartBigAddAlert);
     }
 
     this.logger.warn(`⚠️ Неизвестный тип алерта: ${(alert as any).type}`);

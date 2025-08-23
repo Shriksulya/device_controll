@@ -1,7 +1,9 @@
 export type SmartVolType =
-  | 'SmartVolOpen'
+  | 'SmartOpen'
   | 'SmartVolAdd'
-  | 'SmartVolClose'
+  | 'SmartClose'
+  | 'SmartBigClose'
+  | 'SmartBigAdd'
   | 'VolumeUp';
 
 export type BaseAlert = {
@@ -11,9 +13,11 @@ export type BaseAlert = {
   timeframe?: string;
 };
 
-export type SmartVolOpenAlert = BaseAlert & { type: 'SmartVolOpen' };
+export type SmartOpenAlert = BaseAlert & { type: 'SmartOpen' };
 export type SmartVolAddAlert = BaseAlert & { type: 'SmartVolAdd' };
-export type SmartVolCloseAlert = BaseAlert & { type: 'SmartVolClose' };
+export type SmartCloseAlert = BaseAlert & { type: 'SmartClose' };
+export type SmartBigCloseAlert = BaseAlert & { type: 'SmartBigClose' };
+export type SmartBigAddAlert = BaseAlert & { type: 'SmartBigAdd' };
 export type VolumeUpAlert = BaseAlert & {
   type: 'VolumeUp';
   volume: number;
@@ -21,9 +25,11 @@ export type VolumeUpAlert = BaseAlert & {
 };
 
 export type Alert =
-  | SmartVolOpenAlert
+  | SmartOpenAlert
   | SmartVolAddAlert
-  | SmartVolCloseAlert
+  | SmartCloseAlert
+  | SmartBigCloseAlert
+  | SmartBigAddAlert
   | VolumeUpAlert;
 
 export interface ExchangeGateway {
@@ -70,9 +76,11 @@ export interface TrendProvider {
   ): Promise<boolean>;
 }
 export interface Strategy {
-  onOpen(bot: any, alert: SmartVolOpenAlert): Promise<void>;
+  onOpen(bot: any, alert: SmartOpenAlert): Promise<void>;
   onAdd(bot: any, alert: SmartVolAddAlert): Promise<void>;
-  onClose(bot: any, alert: SmartVolCloseAlert): Promise<void>;
+  onClose(bot: any, alert: SmartCloseAlert): Promise<void>;
+  onBigClose(bot: any, alert: SmartBigCloseAlert): Promise<void>;
+  onBigAdd(bot: any, alert: SmartBigAddAlert): Promise<void>;
   onVolumeUp(bot: any, alert: VolumeUpAlert): Promise<void>;
 }
 export type BotConfig = {

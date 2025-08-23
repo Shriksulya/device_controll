@@ -37,9 +37,11 @@ export class AlertsController {
 
     // Проверяем все поддерживаемые типы алертов
     const supportedTypes = [
-      'SmartVolOpen',
+      'SmartOpen',
       'SmartVolAdd',
-      'SmartVolClose',
+      'SmartClose',
+      'SmartBigClose',
+      'SmartBigAdd',
       'VolumeUp',
       'Buyer domination',
       'Seller domination',

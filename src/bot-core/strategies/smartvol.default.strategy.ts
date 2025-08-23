@@ -388,12 +388,53 @@ export class SmartVolDefaultStrategy implements Strategy {
     );
 
     // Можно добавить дополнительную логику, если потребуется
-    // Например, уведомления о высоком объеме
     if (alert.volume > 1000000) {
       // Если объем больше 1M
       await bot.notify(
         `📊 ${bot.name}: Высокий объем для ${alert.symbol} (${alert.timeframe}): ${alert.volume.toLocaleString()}`,
       );
     }
+  }
+
+  async onBigClose(bot, alert) {
+    this.logger.log(
+      `🚨 SmartBigClose для ${alert.symbol} - экстренное закрытие всей позиции`,
+    );
+
+    const existing = await this.store.findOpen(bot.name, alert.symbol);
+    if (!existing) {
+      this.logger.log(
+        `⚠️ Позиция ${alert.symbol} не найдена в БД для бота ${bot.name}, пропускаю закрытие`,
+      );
+      return;
+    }
+
+    try {
+      await bot.exchange.flashClose?.(alert.symbol, 'long');
+      const finalPnL = this.store.calculatePnL(existing, Number(alert.price));
+      await this.store.close(existing, alert.price);
+
+      await bot.notify(
+        `🚨 ${bot.name}: BIG CLOSE ${alert.symbol} @${alert.price}\n` +
+          `📊 Финальный размер: ${finalPnL.totalSize} ${alert.symbol.replace('USDT', '')}\n` +
+          `💰 Средняя цена входа: $${finalPnL.avgEntryPrice}\n` +
+          `📈 Цена закрытия: $${finalPnL.currentPrice}\n` +
+          `💵 Финальный PnL: $${finalPnL.pnl} (${finalPnL.pnlPercent}%)`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Ошибка при экстренном закрытии позиции ${alert.symbol}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  async onBigAdd(bot, alert) {
+    this.logger.log(`🚀 SmartBigAdd для ${alert.symbol} - большая докупка`);
+
+    // Логика для SmartBigAdd (можно реализовать по необходимости)
+    await bot.notify(
+      `🚀 ${bot.name}: BIG ADD сигнал для ${alert.symbol} @${alert.price}`,
+    );
   }
 }

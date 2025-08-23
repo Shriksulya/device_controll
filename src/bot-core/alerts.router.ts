@@ -24,7 +24,14 @@ function toAlert(p: any): any {
 
   // Проверяем SmartVol сигналы
   if (
-    ['SmartVolOpen', 'SmartVolAdd', 'SmartVolClose', 'VolumeUp'].includes(type)
+    [
+      'SmartOpen',
+      'SmartVolAdd',
+      'SmartClose',
+      'SmartBigClose',
+      'SmartBigAdd',
+      'VolumeUp',
+    ].includes(type)
   ) {
     if (!p.symbol || p.price == null)
       throw new BadRequestException('symbol and price are required');

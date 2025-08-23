@@ -11,6 +11,7 @@ import { TelegramService } from '../services/telegram.service';
 import { VolumeUpService } from '../services/volume-up.service';
 import { PositionsStore } from './positions.store';
 import { SmartVolDefaultStrategy } from './strategies/smartvol.default.strategy';
+import { SmartVolPartialCloseStrategy } from './strategies/smartvol.partial-close.strategy';
 import { DominationStrategy } from './strategies/domination.strategy';
 import { BitgetService } from '../integrations/bitget/bitget.service';
 
@@ -109,6 +110,14 @@ export class BotsRegistry {
       if (c.strategy === 'domination') {
         strategy = new DominationStrategy(this.positions, this.telegram);
         this.log.log(`🎯 Бот ${c.name} использует Domination стратегию`);
+      } else if (c.strategy === 'partial-close') {
+        strategy = new SmartVolPartialCloseStrategy(
+          this.positions,
+          this.volumeUp,
+        );
+        this.log.log(
+          `🔄 Бот ${c.name} использует SmartVol Partial Close стратегию`,
+        );
       } else {
         strategy = new SmartVolDefaultStrategy(this.positions, this.volumeUp);
         this.log.log(`📊 Бот ${c.name} использует SmartVol стратегию`);
