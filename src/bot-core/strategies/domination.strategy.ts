@@ -27,10 +27,13 @@ export class DominationStrategy
   private continuationCheckInterval: NodeJS.Timeout;
 
   onModuleInit() {
-    // Запускаем проверку continuation каждую минуту
-    this.continuationCheckInterval = setInterval(() => {
-      this.checkContinuationTimeouts();
-    }, 60000);
+    // Запускаем проверку continuation каждые 5 минут
+    this.continuationCheckInterval = setInterval(
+      () => {
+        this.checkContinuationTimeouts();
+      },
+      5 * 60 * 1000,
+    ); // 5 минут
   }
 
   onModuleDestroy() {
@@ -45,7 +48,7 @@ export class DominationStrategy
   ) {}
 
   /**
-   * Проверяет таймауты continuation (5 минут)
+   * Проверяет таймауты continuation (30 минут)
    */
   private async checkContinuationTimeouts(): Promise<void> {
     this.logger.debug(
@@ -63,7 +66,7 @@ export class DominationStrategy
         if (lastUpdate) {
           const timeSinceLastUpdate =
             now.getTime() - new Date(lastUpdate).getTime();
-          const timeoutMs = 5 * 60 * 1000; // 5 минут
+          const timeoutMs = 30 * 60 * 1000; // 30 минут
 
           if (timeSinceLastUpdate > timeoutMs) {
             this.logger.log(
@@ -116,7 +119,7 @@ export class DominationStrategy
       `🟢 ${bot.name}: LONG ${alert.symbol} @${alert.price}\n` +
         `💰 Размер: $200\n` +
         `📅 Вход: ${position.openedAt?.toLocaleString() || 'N/A'}\n` +
-        `💡 Ожидаю continuation каждые 5 минут`,
+        `💡 Ожидаю continuation каждые 30 минут`,
     );
   }
 
@@ -160,7 +163,7 @@ export class DominationStrategy
       `🔴 ${bot.name}: SHORT ${alert.symbol} @${alert.price}\n` +
         `💰 Размер: $200\n` +
         `📅 Вход: ${position.openedAt?.toLocaleString() || 'N/A'}\n` +
-        `💡 Ожидаю continuation каждые 5 минут`,
+        `💡 Ожидаю continuation каждые 30 минут`,
     );
   }
 
@@ -190,7 +193,7 @@ export class DominationStrategy
     await bot.notify(
       `📈 ${bot.name}: Buyer continuation ${alert.symbol} @${alert.price}\n` +
         `⏰ Обновлено: ${existing.meta.lastContinuation.toLocaleString()}\n` +
-        `⏳ Следующее ожидание: через 5 минут`,
+        `⏳ Следующее ожидание: через 30 минут`,
     );
   }
 
@@ -220,7 +223,7 @@ export class DominationStrategy
     await bot.notify(
       `📉 ${bot.name}: Seller continuation ${alert.symbol} @${alert.price}\n` +
         `⏰ Обновлено: ${existing.meta.lastContinuation.toLocaleString()}\n` +
-        `⏳ Следующее ожидание: через 5 минут`,
+        `⏳ Следующее ожидание: через 30 минут`,
     );
   }
 
