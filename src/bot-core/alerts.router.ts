@@ -30,6 +30,8 @@ function toAlert(p: any): any {
       'SmartClose',
       'SmartBigClose',
       'SmartBigAdd',
+      'SmartVolumeOpen',
+      'BullishVolume',
       'VolumeUp',
     ].includes(type)
   ) {

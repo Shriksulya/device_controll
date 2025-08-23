@@ -4,6 +4,8 @@ export type SmartVolType =
   | 'SmartClose'
   | 'SmartBigClose'
   | 'SmartBigAdd'
+  | 'SmartVolumeOpen'
+  | 'BullishVolume'
   | 'VolumeUp';
 
 export type BaseAlert = {
@@ -18,6 +20,8 @@ export type SmartVolAddAlert = BaseAlert & { type: 'SmartVolAdd' };
 export type SmartCloseAlert = BaseAlert & { type: 'SmartClose' };
 export type SmartBigCloseAlert = BaseAlert & { type: 'SmartBigClose' };
 export type SmartBigAddAlert = BaseAlert & { type: 'SmartBigAdd' };
+export type SmartVolumeOpenAlert = BaseAlert & { type: 'SmartVolumeOpen' };
+export type BullishVolumeAlert = BaseAlert & { type: 'BullishVolume' };
 export type VolumeUpAlert = BaseAlert & {
   type: 'VolumeUp';
   volume: number;
@@ -30,6 +34,8 @@ export type Alert =
   | SmartCloseAlert
   | SmartBigCloseAlert
   | SmartBigAddAlert
+  | SmartVolumeOpenAlert
+  | BullishVolumeAlert
   | VolumeUpAlert;
 
 export interface ExchangeGateway {
@@ -81,6 +87,8 @@ export interface Strategy {
   onClose(bot: any, alert: SmartCloseAlert): Promise<void>;
   onBigClose(bot: any, alert: SmartBigCloseAlert): Promise<void>;
   onBigAdd(bot: any, alert: SmartBigAddAlert): Promise<void>;
+  onSmartVolumeOpen(bot: any, alert: SmartVolumeOpenAlert): Promise<void>;
+  onBullishVolume(bot: any, alert: BullishVolumeAlert): Promise<void>;
   onVolumeUp(bot: any, alert: VolumeUpAlert): Promise<void>;
 }
 export type BotConfig = {

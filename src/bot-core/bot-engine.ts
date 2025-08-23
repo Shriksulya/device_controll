@@ -10,6 +10,9 @@ import {
   SmartCloseAlert,
   SmartBigCloseAlert,
   SmartBigAddAlert,
+  SmartVolumeOpenAlert,
+  BullishVolumeAlert,
+  VolumeUpAlert,
 } from './interfaces';
 import { Logger } from '@nestjs/common';
 
@@ -136,6 +139,13 @@ export class BotEngine {
       this.logger.log(`📈 Открываю позицию для ${alert.symbol}`);
       return this.strategy.onOpen(this, alert as SmartOpenAlert);
     }
+    if ((alert as any).type === 'SmartVolumeOpen') {
+      this.logger.log(`📊 Открываю позицию по SmartVolume для ${alert.symbol}`);
+      return this.strategy.onSmartVolumeOpen(
+        this,
+        alert as SmartVolumeOpenAlert,
+      );
+    }
     if ((alert as any).type === 'SmartVolAdd') {
       this.logger.log(`➕ Докупаю позицию для ${alert.symbol}`);
       return this.strategy.onAdd(this, alert as SmartVolAddAlert);
@@ -151,6 +161,14 @@ export class BotEngine {
     if ((alert as any).type === 'SmartBigAdd') {
       this.logger.log(`🚀 Большая докупка для ${alert.symbol}`);
       return this.strategy.onBigAdd(this, alert as SmartBigAddAlert);
+    }
+    if ((alert as any).type === 'BullishVolume') {
+      this.logger.log(`🐂 Bullish Volume для ${alert.symbol}`);
+      return this.strategy.onBullishVolume(this, alert as BullishVolumeAlert);
+    }
+    if ((alert as any).type === 'VolumeUp') {
+      this.logger.log(`📊 Volume Up для ${alert.symbol}`);
+      return this.strategy.onVolumeUp(this, alert as VolumeUpAlert);
     }
 
     this.logger.warn(`⚠️ Неизвестный тип алерта: ${(alert as any).type}`);

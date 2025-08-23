@@ -390,19 +390,25 @@ export class SmartVolPartialCloseStrategy implements Strategy {
     );
   }
 
+  // Метод для SmartVolumeOpen (не используется в этой стратегии)
+  async onSmartVolumeOpen(bot, alert) {
+    this.logger.log(
+      `📊 SmartVolumeOpen не используется в Partial Close стратегии`,
+    );
+    // Молча пропускаем - не отправляем уведомления
+  }
+
+  // Метод для BullishVolume (не используется в этой стратегии)
+  async onBullishVolume(bot, alert) {
+    this.logger.log(
+      `🐂 BullishVolume не используется в Partial Close стратегии`,
+    );
+    // Молча пропускаем - не отправляем уведомления
+  }
+
+  // Метод для VolumeUp (не используется в этой стратегии)
   async onVolumeUp(bot, alert) {
-    this.logger.log(
-      `📊 Стратегия onVolumeUp для ${alert.symbol} (${alert.timeframe}) с объемом ${alert.volume}`,
-    );
-
-    this.logger.log(
-      `📈 Объем для ${alert.symbol} (${alert.timeframe}) увеличен до ${alert.volume}`,
-    );
-
-    if (alert.volume > 1000000) {
-      await bot.notify(
-        `📊 ${bot.name}: Высокий объем для ${alert.symbol} (${alert.timeframe}): ${alert.volume.toLocaleString()}`,
-      );
-    }
+    this.logger.log(`📊 VolumeUp не используется в Partial Close стратегии`);
+    // Молча пропускаем - не отправляем уведомления
   }
 }

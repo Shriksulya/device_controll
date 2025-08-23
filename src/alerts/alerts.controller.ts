@@ -42,6 +42,8 @@ export class AlertsController {
       'SmartClose',
       'SmartBigClose',
       'SmartBigAdd',
+      'SmartVolumeOpen',
+      'BullishVolume',
       'VolumeUp',
       'Buyer domination',
       'Seller domination',
@@ -64,16 +66,18 @@ export class AlertsController {
       this.logger.log(
         `📊 Обрабатываю Volume Up для ${p.symbol} (${p.timeframe}): ${p.volume}`,
       );
+
+      // Сохраняем в VolumeUpService
       this.volumeUpService.saveVolumeUp(
         String(p.symbol),
         String(p.timeframe),
         Number(p.volume),
       );
 
-      return { ok: true, message: 'Volume Up data saved' };
+      // НЕ возвращаем здесь - продолжаем обработку через router
     }
 
-    // Для всех остальных алертов используем alerts.router
+    // Для всех алертов (включая VolumeUp) используем alerts.router
     try {
       await this.alertsRouter.handle(p);
       this.logger.log(`✅ Алерт ${type} обработан успешно через router`);

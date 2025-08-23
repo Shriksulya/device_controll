@@ -12,6 +12,7 @@ import { VolumeUpService } from '../services/volume-up.service';
 import { PositionsStore } from './positions.store';
 import { SmartVolDefaultStrategy } from './strategies/smartvol.default.strategy';
 import { SmartVolPartialCloseStrategy } from './strategies/smartvol.partial-close.strategy';
+import { SmartVolumeStrategy } from './strategies/smartvolume.strategy';
 import { DominationStrategy } from './strategies/domination.strategy';
 import { BitgetService } from '../integrations/bitget/bitget.service';
 
@@ -118,6 +119,9 @@ export class BotsRegistry {
         this.log.log(
           `🔄 Бот ${c.name} использует SmartVol Partial Close стратегию`,
         );
+      } else if (c.strategy === 'smartvolume') {
+        strategy = new SmartVolumeStrategy(this.positions, this.volumeUp);
+        this.log.log(`📊 Бот ${c.name} использует SmartVolume стратегию`);
       } else {
         strategy = new SmartVolDefaultStrategy(this.positions, this.volumeUp);
         this.log.log(`📊 Бот ${c.name} использует SmartVol стратегию`);

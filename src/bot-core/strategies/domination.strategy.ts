@@ -347,6 +347,14 @@ export class DominationStrategy
     // Не используется
   }
 
+  async onSmartVolumeOpen(bot: any, alert: any): Promise<void> {
+    // Не используется
+  }
+
+  async onBullishVolume(bot: any, alert: any): Promise<void> {
+    // Не используется
+  }
+
   async onVolumeUp(bot: any, alert: any): Promise<void> {
     // Не используется
   }

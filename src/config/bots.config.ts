@@ -71,6 +71,24 @@ export default () => ({
       strategy: 'partial-close', // Указываем тип стратегии
       maxFills: 4, // Максимум 4 докупки
     },
+    {
+      name: 'SmartVolumeBot',
+      enabled: true,
+      based_on_default_logic: false, // Использует SmartVolume стратегию
+      prod: false,
+      is_trended: false, // Тренд не проверяется
+      direction: 'long',
+      // Таймфреймы для сигналов входа/выхода
+      timeframe_trend: ['30m'],
+      symbol_filter: [], // Все символы
+      scheduled_notification: true,
+      scheduled_time: '30m',
+      exchange_profile: 'BITGET',
+      telegram_channel: 'bot4', // Используем bot4 канал
+      smartvol: { baseUsd: 500, addFraction: 0.3, leverage: 15 },
+      strategy: 'smartvolume', // Указываем тип стратегии
+      maxFills: 3, // Максимум 3 докупки
+    },
   ],
   telegram: {
     bot1: {
@@ -92,6 +110,11 @@ export default () => ({
       token: '8368325139:AAEWsn7DZNFjnRfGquToJhbnoMc3ytTwOBI', // Используем тот же токен
       chatId: '-4971796795', // Или укажите другой chatId
       name: 'SmartVol Partial Close Bot or +25',
+    },
+    bot4: {
+      token: '8380397162:AAEsOpFUAqOdkFlaYh33xOhtuS6_-GqQF8U', // Используем тот же токен
+      chatId: '-4866666169', // Или укажите другой chatId
+      name: 'SmartVolume Decreaser Bot',
     },
   },
   bitget: {

@@ -34,9 +34,7 @@ export class SmartVolDefaultStrategy implements Strategy {
 
       if (trendDirection !== bot.cfg.direction) {
         this.logger.log(`⏸ Тренд не совпадает, пропускаю`);
-        await bot.notify(
-          `⏸ ${bot.name}: тренд ${trendDirection} не совпадает с направлением бота ${bot.cfg.direction} (тренд: ${trendTimeframe})`,
-        );
+        // Молча пропускаем - не отправляем уведомления
         return;
       }
       this.logger.log(`✅ Тренд совпадает, продолжаю`);
@@ -377,23 +375,22 @@ export class SmartVolDefaultStrategy implements Strategy {
     }
   }
 
+  // Метод для SmartVolumeOpen (не используется в этой стратегии)
+  async onSmartVolumeOpen(bot, alert) {
+    this.logger.log(`📊 SmartVolumeOpen не используется в Default стратегии`);
+    // Молча пропускаем - не отправляем уведомления
+  }
+
+  // Метод для BullishVolume (не используется в этой стратегии)
+  async onBullishVolume(bot, alert) {
+    this.logger.log(`🐂 BullishVolume не используется в Default стратегии`);
+    // Молча пропускаем - не отправляем уведомления
+  }
+
+  // Метод для VolumeUp (не используется в этой стратегии)
   async onVolumeUp(bot, alert) {
-    this.logger.log(
-      `📊 Стратегия onVolumeUp для ${alert.symbol} (${alert.timeframe}) с объемом ${alert.volume}`,
-    );
-
-    // Volume Up не требует действий от бота, только логирование
-    this.logger.log(
-      `📈 Объем для ${alert.symbol} (${alert.timeframe}) увеличен до ${alert.volume}`,
-    );
-
-    // Можно добавить дополнительную логику, если потребуется
-    if (alert.volume > 1000000) {
-      // Если объем больше 1M
-      await bot.notify(
-        `📊 ${bot.name}: Высокий объем для ${alert.symbol} (${alert.timeframe}): ${alert.volume.toLocaleString()}`,
-      );
-    }
+    this.logger.log(`📊 VolumeUp не используется в Default стратегии`);
+    // Молча пропускаем - не отправляем уведомления
   }
 
   async onBigClose(bot, alert) {
