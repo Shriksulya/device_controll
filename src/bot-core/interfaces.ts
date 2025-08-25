@@ -6,7 +6,9 @@ export type SmartVolType =
   | 'SmartBigAdd'
   | 'SmartVolumeOpen'
   | 'BullishVolume'
-  | 'VolumeUp';
+  | 'VolumeUp'
+  | 'FixedShortSynchronization'
+  | 'LiveShortSynchronization';
 
 export type BaseAlert = {
   kind: 'smartvol';
@@ -28,6 +30,13 @@ export type VolumeUpAlert = BaseAlert & {
   timeframe: string;
 };
 
+export type FixedShortSynchronizationAlert = BaseAlert & {
+  type: 'FixedShortSynchronization';
+};
+export type LiveShortSynchronizationAlert = BaseAlert & {
+  type: 'LiveShortSynchronization';
+};
+
 export type Alert =
   | SmartOpenAlert
   | SmartVolAddAlert
@@ -36,7 +45,9 @@ export type Alert =
   | SmartBigAddAlert
   | SmartVolumeOpenAlert
   | BullishVolumeAlert
-  | VolumeUpAlert;
+  | VolumeUpAlert
+  | FixedShortSynchronizationAlert
+  | LiveShortSynchronizationAlert;
 
 export interface ExchangeGateway {
   ensureLeverage?(symbolId: string, leverage: string): Promise<void>;
@@ -90,6 +101,14 @@ export interface Strategy {
   onSmartVolumeOpen(bot: any, alert: SmartVolumeOpenAlert): Promise<void>;
   onBullishVolume(bot: any, alert: BullishVolumeAlert): Promise<void>;
   onVolumeUp(bot: any, alert: VolumeUpAlert): Promise<void>;
+  onFixedShortSynchronization(
+    bot: any,
+    alert: FixedShortSynchronizationAlert,
+  ): Promise<void>;
+  onLiveShortSynchronization(
+    bot: any,
+    alert: LiveShortSynchronizationAlert,
+  ): Promise<void>;
 }
 export type BotConfig = {
   name: string;

@@ -13,6 +13,8 @@ import {
   SmartVolumeOpenAlert,
   BullishVolumeAlert,
   VolumeUpAlert,
+  FixedShortSynchronizationAlert,
+  LiveShortSynchronizationAlert,
 } from './interfaces';
 import { Logger } from '@nestjs/common';
 
@@ -169,6 +171,20 @@ export class BotEngine {
     if ((alert as any).type === 'VolumeUp') {
       this.logger.log(`📊 Volume Up для ${alert.symbol}`);
       return this.strategy.onVolumeUp(this, alert as VolumeUpAlert);
+    }
+    if ((alert as any).type === 'FixedShortSynchronization') {
+      this.logger.log(`🔒 Fixed Short Synchronization для ${alert.symbol}`);
+      return this.strategy.onFixedShortSynchronization(
+        this,
+        alert as FixedShortSynchronizationAlert,
+      );
+    }
+    if ((alert as any).type === 'LiveShortSynchronization') {
+      this.logger.log(`🔒 Live Short Synchronization для ${alert.symbol}`);
+      return this.strategy.onLiveShortSynchronization(
+        this,
+        alert as LiveShortSynchronizationAlert,
+      );
     }
 
     this.logger.warn(`⚠️ Неизвестный тип алерта: ${(alert as any).type}`);

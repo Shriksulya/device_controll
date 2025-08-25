@@ -33,6 +33,8 @@ function toAlert(p: any): any {
       'SmartVolumeOpen',
       'BullishVolume',
       'VolumeUp',
+      'FixedShortSynchronization',
+      'LiveShortSynchronization',
     ].includes(type)
   ) {
     if (!p.symbol || p.price == null)
