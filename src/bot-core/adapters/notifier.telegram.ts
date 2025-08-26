@@ -4,7 +4,14 @@ import { TelegramService } from '../../services/telegram.service';
 export class TelegramNotifier implements Notifier {
   constructor(
     private readonly tg: TelegramService,
-    private readonly channel: 'bot1' | 'bot2' | 'bot3' | 'bot4' | 'domination',
+    private readonly channel:
+      | 'bot1'
+      | 'bot2'
+      | 'bot3'
+      | 'bot4'
+      | 'domination'
+      | 'trend-pivot-15m'
+      | 'trend-pivot-1h',
   ) {}
 
   async send(text: string) {
