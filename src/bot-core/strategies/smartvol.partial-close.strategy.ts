@@ -411,4 +411,29 @@ export class SmartVolPartialCloseStrategy implements Strategy {
     this.logger.log(`📊 VolumeUp не используется в Partial Close стратегии`);
     // Молча пропускаем - не отправляем уведомления
   }
+
+  // Методы для TrendPivot стратегии (не используются в SmartVol Partial Close)
+  async onLongTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onShortTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onStrongLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
 }

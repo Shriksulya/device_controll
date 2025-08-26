@@ -3,7 +3,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
-export type BotType = 'bot1' | 'bot2' | 'bot3' | 'bot4' | 'domination';
+export type BotType =
+  | 'bot1'
+  | 'bot2'
+  | 'bot3'
+  | 'bot4'
+  | 'domination'
+  | 'trend-pivot-15m'
+  | 'trend-pivot-1h';
 
 @Injectable()
 export class TelegramService {

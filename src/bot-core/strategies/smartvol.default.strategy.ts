@@ -393,6 +393,31 @@ export class SmartVolDefaultStrategy implements Strategy {
     // Молча пропускаем - не отправляем уведомления
   }
 
+  // Методы для TrendPivot стратегии (не используются в SmartVol Default)
+  async onLongTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onShortTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onStrongLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
   async onBigClose(bot, alert) {
     this.logger.log(
       `🚨 SmartBigClose для ${alert.symbol} - экстренное закрытие всей позиции`,

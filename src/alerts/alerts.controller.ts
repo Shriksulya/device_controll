@@ -49,6 +49,12 @@ export class AlertsController {
       'Seller domination',
       'Continuation of buyer dominance',
       'Continuation of seller dominance',
+      'long trend',
+      'short trend',
+      'long pivot point',
+      'short pivot point',
+      'strong long pivot point',
+      'strong short pivot point',
     ];
 
     if (!supportedTypes.includes(type))
@@ -94,7 +100,17 @@ export class AlertsController {
   async testTelegram(@Param('botType') botType: string) {
     this.logger.log(`🧪 Тестирую телеграм для ${botType}`);
 
-    if (!['bot1', 'bot2', 'bot3', 'bot4', 'domination'].includes(botType)) {
+    if (
+      ![
+        'bot1',
+        'bot2',
+        'bot3',
+        'bot4',
+        'domination',
+        'trend-pivot-15m',
+        'trend-pivot-1h',
+      ].includes(botType)
+    ) {
       throw new BadRequestException(`Invalid bot type: ${botType}`);
     }
 
@@ -137,7 +153,17 @@ export class AlertsController {
       throw new BadRequestException('message is required');
     }
 
-    if (!['bot1', 'bot2', 'bot3', 'bot4', 'domination'].includes(botType)) {
+    if (
+      ![
+        'bot1',
+        'bot2',
+        'bot3',
+        'bot4',
+        'domination',
+        'trend-pivot-15m',
+        'trend-pivot-1h',
+      ].includes(botType)
+    ) {
       throw new BadRequestException(`Invalid bot type: ${botType}`);
     }
 

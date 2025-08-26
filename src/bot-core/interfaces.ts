@@ -127,6 +127,19 @@ export interface Strategy {
   onSmartVolumeOpen(bot: any, alert: SmartVolumeOpenAlert): Promise<void>;
   onBullishVolume(bot: any, alert: BullishVolumeAlert): Promise<void>;
   onVolumeUp(bot: any, alert: VolumeUpAlert): Promise<void>;
+  // Методы для TrendPivot стратегии
+  onLongTrend(bot: any, alert: LongTrendAlert): Promise<void>;
+  onShortTrend(bot: any, alert: ShortTrendAlert): Promise<void>;
+  onLongPivotPoint(bot: any, alert: LongPivotPointAlert): Promise<void>;
+  onShortPivotPoint(bot: any, alert: ShortPivotPointAlert): Promise<void>;
+  onStrongLongPivotPoint(
+    bot: any,
+    alert: StrongLongPivotPointAlert,
+  ): Promise<void>;
+  onStrongShortPivotPoint(
+    bot: any,
+    alert: StrongShortPivotPointAlert,
+  ): Promise<void>;
 }
 export type BotConfig = {
   name: string;
@@ -142,7 +155,14 @@ export type BotConfig = {
   scheduled_notification: boolean;
   scheduled_time: string | null;
   exchange_profile: 'BITGET' | 'BITGET2';
-  telegram_channel: 'bot1' | 'bot2' | 'bot3' | 'bot4' | 'domination';
+  telegram_channel:
+    | 'bot1'
+    | 'bot2'
+    | 'bot3'
+    | 'bot4'
+    | 'domination'
+    | 'trend-pivot-15m'
+    | 'trend-pivot-1h';
   smartvol?: { baseUsd: number; addFraction: number; leverage: number } | null;
   maxFills?: number;
 };

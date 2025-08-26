@@ -361,4 +361,29 @@ export class DominationStrategy
   async onVolumeUp(bot: any, alert: any): Promise<void> {
     // Не используется
   }
+
+  // Методы для TrendPivot стратегии (не используются в Domination)
+  async onLongTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onShortTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onStrongLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
 }

@@ -404,4 +404,29 @@ export class SmartVolumeStrategy implements Strategy {
   async onSmartVolumeOpen(bot, alert) {
     return this.onOpen(bot, alert);
   }
+
+  // Методы для TrendPivot стратегии (не используются в SmartVolume)
+  async onLongTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onShortTrend(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onStrongLongPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
 }
