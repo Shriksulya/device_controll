@@ -14,6 +14,7 @@ import { SmartVolDefaultStrategy } from './strategies/smartvol.default.strategy'
 import { SmartVolPartialCloseStrategy } from './strategies/smartvol.partial-close.strategy';
 import { SmartVolumeStrategy } from './strategies/smartvolume.strategy';
 import { DominationStrategy } from './strategies/domination.strategy';
+import { TrendPivotStrategy } from './strategies/trend-pivot.strategy';
 import { BitgetService } from '../integrations/bitget/bitget.service';
 
 @Injectable()
@@ -53,6 +54,9 @@ export class BotsRegistry {
       if (c.strategy === 'domination') {
         // Для Domination стратегии проверяем только telegram
         this.log.log(`🎯 Бот ${c.name} использует Domination стратегию`);
+      } else if (c.strategy === 'trend-pivot') {
+        // Для TrendPivot стратегии проверяем только telegram
+        this.log.log(`🎯 Бот ${c.name} использует TrendPivot стратегию`);
       } else {
         // Для SmartVol стратегии проверяем smartvol конфигурацию
         if (!c.smartvol?.baseUsd || isNaN(c.smartvol.baseUsd)) {
@@ -111,6 +115,9 @@ export class BotsRegistry {
       if (c.strategy === 'domination') {
         strategy = new DominationStrategy(this.positions, this.telegram);
         this.log.log(`🎯 Бот ${c.name} использует Domination стратегию`);
+      } else if (c.strategy === 'trend-pivot') {
+        strategy = new TrendPivotStrategy(this.positions);
+        this.log.log(`🎯 Бот ${c.name} использует TrendPivot стратегию`);
       } else if (c.strategy === 'partial-close') {
         strategy = new SmartVolPartialCloseStrategy(
           this.positions,

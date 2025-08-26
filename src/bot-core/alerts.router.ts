@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { BotsRegistry } from './bots.registry';
-import { Alert, SmartVolType } from './interfaces';
+import { Alert, SmartVolType, TrendPivotType } from './interfaces';
 import { DominationStrategy } from './strategies/domination.strategy';
+import { TrendPivotStrategy } from './strategies/trend-pivot.strategy';
 
 // Добавляем типы для Domination сигналов
 export type DominationAlertType =
@@ -10,14 +11,14 @@ export type DominationAlertType =
   | 'Continuation of buyer dominance'
   | 'Continuation of seller dominance';
 
-export type AllAlertType = SmartVolType | DominationAlertType;
+export type AllAlertType = SmartVolType | DominationAlertType | TrendPivotType;
 
 function toAlert(p: any): any {
   if (!p || typeof p !== 'object')
     throw new BadRequestException('Invalid payload');
   if (!('alertName' in p))
     throw new BadRequestException(
-      'Only SmartVol and Domination alerts are supported',
+      'Only SmartVol, Domination and TrendPivot alerts are supported',
     );
 
   const type = String(p.alertName);
@@ -64,6 +65,29 @@ function toAlert(p: any): any {
     };
   }
 
+  // Проверяем TrendPivot сигналы
+  if (
+    [
+      'long trend',
+      'short trend',
+      'long pivot point',
+      'short pivot point',
+      'strong long pivot point',
+      'strong short pivot point',
+    ].includes(type)
+  ) {
+    if (!p.symbol || p.price == null)
+      throw new BadRequestException('symbol and price are required');
+
+    return {
+      kind: 'trend-pivot',
+      type: type as TrendPivotType,
+      symbol: String(p.symbol),
+      price: String(p.price),
+      timeframe: p.timeframe,
+    };
+  }
+
   // Проверяем Domination сигналы
   if (
     [
@@ -95,6 +119,7 @@ export class AlertsRouter {
   constructor(
     private readonly registry: BotsRegistry,
     private readonly dominationStrategy: DominationStrategy,
+    private readonly trendPivotStrategy: TrendPivotStrategy,
   ) {}
 
   async handle(payload: any) {
@@ -103,6 +128,12 @@ export class AlertsRouter {
     // Обрабатываем Domination сигналы отдельно
     if (alert.kind === 'domination') {
       await this.handleDominationAlert(alert);
+      return;
+    }
+
+    // Обрабатываем TrendPivot сигналы отдельно
+    if (alert.kind === 'trend-pivot') {
+      await this.handleTrendPivotAlert(alert);
       return;
     }
 
@@ -212,6 +243,111 @@ export class AlertsRouter {
 
       default:
         this.log.warn(`⚠️ Неизвестный тип Domination алерта: ${alert.type}`);
+    }
+  }
+
+  /**
+   * Обрабатывает TrendPivot сигналы
+   */
+  private async handleTrendPivotAlert(alert: {
+    kind: 'trend-pivot';
+    type: TrendPivotType;
+    symbol: string;
+    price: string;
+    timeframe?: string;
+  }) {
+    this.log.log(
+      `🎯 Обрабатываю TrendPivot сигнал: ${alert.type} для ${alert.symbol}`,
+    );
+
+    // Получаем только ботов с strategy: 'trend-pivot'
+    const bots = this.registry
+      .all()
+      .filter((bot) => bot.cfg.strategy === 'trend-pivot');
+
+    if (bots.length === 0) {
+      this.log.warn(
+        `⚠️ Не найдено ботов с strategy: 'trend-pivot' для обработки TrendPivot алерта`,
+      );
+      return;
+    }
+
+    this.log.log(
+      `🎯 Найдено ${bots.length} ботов для TrendPivot стратегии: ${bots.map((b) => b.name).join(', ')}`,
+    );
+
+    for (const bot of bots) {
+      try {
+        await this.processTrendPivotAlert(bot, alert);
+      } catch (error) {
+        this.log.error(
+          `❌ Ошибка обработки TrendPivot алерта для бота ${bot.name}: ${error.message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Обрабатывает TrendPivot алерт для конкретного бота
+   */
+  private async processTrendPivotAlert(
+    bot: any,
+    alert: {
+      kind: 'trend-pivot';
+      type: TrendPivotType;
+      symbol: string;
+      price: string;
+      timeframe?: string;
+    },
+  ): Promise<void> {
+    // Дополнительная проверка - убеждаемся что бот использует TrendPivot стратегию
+    if (bot.cfg.strategy !== 'trend-pivot') {
+      this.log.warn(
+        `⚠️ Бот ${bot.name} не использует TrendPivot стратегию (strategy: ${bot.cfg.strategy})`,
+      );
+      return;
+    }
+
+    // Проверяем фильтр символов
+    const filter = bot.cfg.symbol_filter || [];
+    if (filter.length && !filter.includes(alert.symbol)) {
+      this.log.log(
+        `⏭️ Бот ${bot.name} пропускает ${alert.symbol} (фильтр: ${filter.join(',')})`,
+      );
+      return;
+    }
+
+    this.log.log(
+      `✅ Бот ${bot.name} обрабатывает TrendPivot алерт: ${alert.type} для ${alert.symbol}`,
+    );
+
+    switch (alert.type) {
+      case 'long trend':
+        await this.trendPivotStrategy.onLongTrend(bot, alert);
+        break;
+
+      case 'short trend':
+        await this.trendPivotStrategy.onShortTrend(bot, alert);
+        break;
+
+      case 'long pivot point':
+        await this.trendPivotStrategy.onLongPivotPoint(bot, alert);
+        break;
+
+      case 'short pivot point':
+        await this.trendPivotStrategy.onShortPivotPoint(bot, alert);
+        break;
+
+      case 'strong long pivot point':
+        await this.trendPivotStrategy.onStrongLongPivotPoint(bot, alert);
+        break;
+
+      case 'strong short pivot point':
+        await this.trendPivotStrategy.onStrongShortPivotPoint(bot, alert);
+        break;
+
+      default:
+        this.log.warn(`⚠️ Неизвестный тип TrendPivot алерта: ${alert.type}`);
     }
   }
 }

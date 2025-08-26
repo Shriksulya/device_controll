@@ -89,6 +89,42 @@ export default () => ({
       strategy: 'smartvolume', // Указываем тип стратегии
       maxFills: 3, // Максимум 3 докупки
     },
+    {
+      name: 'TrendPivot15m',
+      enabled: true,
+      based_on_default_logic: false, // Использует TrendPivot стратегию
+      prod: false,
+      is_trended: false, // Тренд не проверяется
+      direction: 'long',
+      // Таймфреймы для трендовых сигналов
+      timeframe_trend: ['15m', '4h'],
+      symbol_filter: [], // Все символы
+      scheduled_notification: false, // Уведомления только по событиям
+      scheduled_time: null,
+      exchange_profile: 'BITGET',
+      telegram_channel: 'trend-pivot-15m', // Новый канал
+      smartvol: { baseUsd: 250, addFraction: 0.4, leverage: 10 },
+      strategy: 'trend-pivot', // Указываем тип стратегии
+      maxFills: 1, // Только одна позиция на символ
+    },
+    {
+      name: 'TrendPivot1h',
+      enabled: true,
+      based_on_default_logic: false, // Использует TrendPivot стратегию
+      prod: false,
+      is_trended: false, // Тренд не проверяется
+      direction: 'long',
+      // Таймфреймы для трендовых сигналов
+      timeframe_trend: ['1h', '4h'],
+      symbol_filter: [], // Все символы
+      scheduled_notification: false, // Уведомления только по событиям
+      scheduled_time: null,
+      exchange_profile: 'BITGET',
+      telegram_channel: 'trend-pivot-1h', // Новый канал
+      smartvol: { baseUsd: 350, addFraction: 0.3, leverage: 12 },
+      strategy: 'trend-pivot', // Указываем тип стратегии
+      maxFills: 1, // Только одна позиция на символ
+    },
   ],
   telegram: {
     bot1: {
@@ -115,6 +151,16 @@ export default () => ({
       token: '8380397162:AAEsOpFUAqOdkFlaYh33xOhtuS6_-GqQF8U', // Используем тот же токен
       chatId: '-4866666169', // Или укажите другой chatId
       name: 'SmartVolume Decreaser Bot',
+    },
+    'trend-pivot-15m': {
+      token: '8384811522:AAGuc56xPZKARqnoU0WaBAzm_OzHCwfMicA', // Используем тот же токен
+      chatId: '-4734507504', // Или укажите другой chatId
+      name: 'Trend Pivot 15m Bot',
+    },
+    'trend-pivot-1h': {
+      token: '8489609392:AAGp1Ic6Ld-EHrW0M5QNvwdzKhNyrQQyXFs', // Используем тот же токен
+      chatId: '-4865454085', // Или укажите другой chatId
+      name: 'Trend Pivot 1h Bot',
     },
   },
   bitget: {

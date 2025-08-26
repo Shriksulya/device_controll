@@ -8,8 +8,25 @@ export type SmartVolType =
   | 'BullishVolume'
   | 'VolumeUp';
 
+// Новые типы алертов для трендовой стратегии
+export type TrendPivotType =
+  | 'long trend'
+  | 'short trend'
+  | 'long pivot point'
+  | 'short pivot point'
+  | 'strong long pivot point'
+  | 'strong short pivot point';
+
 export type BaseAlert = {
   kind: 'smartvol';
+  symbol: string;
+  price: string;
+  timeframe?: string;
+};
+
+// Базовый алерт для трендовой стратегии
+export type BaseTrendAlert = {
+  kind: 'trend-pivot';
   symbol: string;
   price: string;
   timeframe?: string;
@@ -28,6 +45,20 @@ export type VolumeUpAlert = BaseAlert & {
   timeframe: string;
 };
 
+// Новые типы алертов для трендовой стратегии
+export type LongTrendAlert = BaseTrendAlert & { type: 'long trend' };
+export type ShortTrendAlert = BaseTrendAlert & { type: 'short trend' };
+export type LongPivotPointAlert = BaseTrendAlert & { type: 'long pivot point' };
+export type ShortPivotPointAlert = BaseTrendAlert & {
+  type: 'short pivot point';
+};
+export type StrongLongPivotPointAlert = BaseTrendAlert & {
+  type: 'strong long pivot point';
+};
+export type StrongShortPivotPointAlert = BaseTrendAlert & {
+  type: 'strong short pivot point';
+};
+
 export type Alert =
   | SmartOpenAlert
   | SmartVolAddAlert
@@ -36,7 +67,13 @@ export type Alert =
   | SmartBigAddAlert
   | SmartVolumeOpenAlert
   | BullishVolumeAlert
-  | VolumeUpAlert;
+  | VolumeUpAlert
+  | LongTrendAlert
+  | ShortTrendAlert
+  | LongPivotPointAlert
+  | ShortPivotPointAlert
+  | StrongLongPivotPointAlert
+  | StrongShortPivotPointAlert;
 
 export interface ExchangeGateway {
   ensureLeverage?(symbolId: string, leverage: string): Promise<void>;

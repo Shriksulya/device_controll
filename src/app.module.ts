@@ -15,6 +15,7 @@ import { PositionsStore } from './bot-core/positions.store';
 import { IntegrationsModule } from './integrations/bitget/integrations.module';
 import { AppInitService } from './app.init.service';
 import { DominationStrategy } from './bot-core/strategies/domination.strategy';
+import { TrendPivotStrategy } from './bot-core/strategies/trend-pivot.strategy';
 import { AlertsRouter } from './bot-core/alerts.router';
 
 @Module({
@@ -46,6 +47,7 @@ import { AlertsRouter } from './bot-core/alerts.router';
     PositionsStore,
     AppInitService,
     DominationStrategy,
+    TrendPivotStrategy,
     AlertsRouter,
   ],
 })
