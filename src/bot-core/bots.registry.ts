@@ -15,6 +15,7 @@ import { SmartVolPartialCloseStrategy } from './strategies/smartvol.partial-clos
 import { SmartVolumeStrategy } from './strategies/smartvolume.strategy';
 import { DominationStrategy } from './strategies/domination.strategy';
 import { TrendPivotStrategy } from './strategies/trend-pivot.strategy';
+import { ThreeAlertsStrategy } from './strategies/three-alerts.strategy';
 import { BitgetService } from '../integrations/bitget/bitget.service';
 
 @Injectable()
@@ -57,6 +58,9 @@ export class BotsRegistry {
       } else if (c.strategy === 'trend-pivot') {
         // Для TrendPivot стратегии проверяем только telegram
         this.log.log(`🎯 Бот ${c.name} использует TrendPivot стратегию`);
+      } else if (c.strategy === 'three-alerts') {
+        // Для ThreeAlerts стратегии проверяем только telegram
+        this.log.log(`🎯 Бот ${c.name} использует ThreeAlerts стратегию`);
       } else {
         // Для SmartVol стратегии проверяем smartvol конфигурацию
         if (!c.smartvol?.baseUsd || isNaN(c.smartvol.baseUsd)) {
@@ -118,6 +122,9 @@ export class BotsRegistry {
       } else if (c.strategy === 'trend-pivot') {
         strategy = new TrendPivotStrategy(this.positions);
         this.log.log(`🎯 Бот ${c.name} использует TrendPivot стратегию`);
+      } else if (c.strategy === 'three-alerts') {
+        strategy = new ThreeAlertsStrategy(this.positions, notifier);
+        this.log.log(`🎯 Бот ${c.name} использует ThreeAlerts стратегию`);
       } else if (c.strategy === 'partial-close') {
         strategy = new SmartVolPartialCloseStrategy(
           this.positions,

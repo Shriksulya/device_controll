@@ -429,4 +429,29 @@ export class SmartVolumeStrategy implements Strategy {
   async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
     // Не используется в SmartVolume стратегии
   }
+
+  // Методы для ThreeAlerts стратегии (не используются в SmartVolume)
+  async onBullRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onBearRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onBullMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onBearMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onIstinoeBullPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
+
+  async onIstinoeBearPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVolume стратегии
+  }
 }

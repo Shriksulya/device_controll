@@ -576,4 +576,29 @@ export class TrendPivotStrategy implements Strategy {
   async onVolumeUp(bot: any, alert: any): Promise<void> {
     // Не используется в этой стратегии
   }
+
+  // Методы для ThreeAlerts стратегии (не используются в TrendPivot)
+  async onBullRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в этой стратегии
+  }
+
+  async onBearRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в этой стратегии
+  }
+
+  async onBullMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в этой стратегии
+  }
+
+  async onBearMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в этой стратегии
+  }
+
+  async onIstinoeBullPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в этой стратегии
+  }
+
+  async onIstinoeBearPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в этой стратегии
+  }
 }

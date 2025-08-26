@@ -125,6 +125,24 @@ export default () => ({
       strategy: 'trend-pivot', // Указываем тип стратегии
       maxFills: 1, // Только одна позиция на символ
     },
+    {
+      name: 'ThreeAlertsBot',
+      enabled: true,
+      based_on_default_logic: false, // Использует ThreeAlerts стратегию
+      prod: false,
+      is_trended: false, // Тренд не проверяется
+      direction: 'both', // Может быть и long и short
+      // Таймфреймы для сигналов
+      timeframe_trend: ['15m', '1h'],
+      symbol_filter: [], // Все символы
+      scheduled_notification: false, // Уведомления только по событиям
+      scheduled_time: null,
+      exchange_profile: 'BITGET',
+      telegram_channel: 'three-alerts', // Новый канал
+      smartvol: null, // Не использует SmartVol логику
+      strategy: 'three-alerts', // Указываем тип стратегии
+      maxFills: 1, // Только одна позиция на символ
+    },
   ],
   telegram: {
     bot1: {
@@ -161,6 +179,11 @@ export default () => ({
       token: '8489609392:AAGp1Ic6Ld-EHrW0M5QNvwdzKhNyrQQyXFs', // Используем тот же токен
       chatId: '-4865454085', // Или укажите другой chatId
       name: 'Trend Pivot 1h Bot',
+    },
+    'three-alerts': {
+      token: '8255273787:AAGPyPzIJZDNtFOUCdKGb_-C43uf2o0O4G8', // Используем тот же токен
+      chatId: '-4624630388', // Или укажите другой chatId
+      name: 'Three Alerts Bot',
     },
   },
   bitget: {

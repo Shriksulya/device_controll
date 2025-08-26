@@ -436,4 +436,29 @@ export class SmartVolPartialCloseStrategy implements Strategy {
   async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
     // Не используется в SmartVol Partial Close стратегии
   }
+
+  // Методы для ThreeAlerts стратегии (не используются в SmartVol Partial Close)
+  async onBullRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onBearRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onBullMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onBearMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onIstinoeBullPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
+
+  async onIstinoeBearPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Partial Close стратегии
+  }
 }

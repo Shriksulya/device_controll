@@ -11,7 +11,8 @@ export class TelegramNotifier implements Notifier {
       | 'bot4'
       | 'domination'
       | 'trend-pivot-15m'
-      | 'trend-pivot-1h',
+      | 'trend-pivot-1h'
+      | 'three-alerts',
   ) {}
 
   async send(text: string) {

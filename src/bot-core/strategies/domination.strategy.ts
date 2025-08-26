@@ -386,4 +386,29 @@ export class DominationStrategy
   async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
     // Не используется в Domination стратегии
   }
+
+  // Методы для ThreeAlerts стратегии (не используются в Domination)
+  async onBullRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onBearRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onBullMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onBearMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onIstinoeBullPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
+
+  async onIstinoeBearPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в Domination стратегии
+  }
 }

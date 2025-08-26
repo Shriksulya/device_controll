@@ -459,4 +459,29 @@ export class SmartVolDefaultStrategy implements Strategy {
       `🚀 ${bot.name}: BIG ADD сигнал для ${alert.symbol} @${alert.price}`,
     );
   }
+
+  // Методы для ThreeAlerts стратегии (не используются в SmartVol Default)
+  async onBullRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onBearRelsi(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onBullMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onBearMarubozu(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onIstinoeBullPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
+
+  async onIstinoeBearPogloshenie(bot: any, alert: any): Promise<void> {
+    // Не используется в SmartVol Default стратегии
+  }
 }

@@ -17,6 +17,15 @@ export type TrendPivotType =
   | 'strong long pivot point'
   | 'strong short pivot point';
 
+// Типы алертов для ThreeAlerts стратегии
+export type ThreeAlertsType =
+  | 'bull relsi'
+  | 'bear relsi'
+  | 'bull marubozu'
+  | 'bear marubozu'
+  | 'istinoe bull pogloshenie'
+  | 'istinoe bear pogloshenie';
+
 export type BaseAlert = {
   kind: 'smartvol';
   symbol: string;
@@ -27,6 +36,14 @@ export type BaseAlert = {
 // Базовый алерт для трендовой стратегии
 export type BaseTrendAlert = {
   kind: 'trend-pivot';
+  symbol: string;
+  price: string;
+  timeframe?: string;
+};
+
+// Базовый алерт для ThreeAlerts стратегии
+export type BaseThreeAlertsAlert = {
+  alertName: string;
   symbol: string;
   price: string;
   timeframe?: string;
@@ -59,6 +76,22 @@ export type StrongShortPivotPointAlert = BaseTrendAlert & {
   type: 'strong short pivot point';
 };
 
+// Алерты для ThreeAlerts стратегии
+export type BullRelsiAlert = BaseThreeAlertsAlert & { alertName: 'bull relsi' };
+export type BearRelsiAlert = BaseThreeAlertsAlert & { alertName: 'bear relsi' };
+export type BullMarubozuAlert = BaseThreeAlertsAlert & {
+  alertName: 'bull marubozu';
+};
+export type BearMarubozuAlert = BaseThreeAlertsAlert & {
+  alertName: 'bear marubozu';
+};
+export type IstinoeBullPogloshenieAlert = BaseThreeAlertsAlert & {
+  alertName: 'istinoe bull pogloshenie';
+};
+export type IstinoeBearPogloshenieAlert = BaseThreeAlertsAlert & {
+  alertName: 'istinoe bear pogloshenie';
+};
+
 export type Alert =
   | SmartOpenAlert
   | SmartVolAddAlert
@@ -73,7 +106,13 @@ export type Alert =
   | LongPivotPointAlert
   | ShortPivotPointAlert
   | StrongLongPivotPointAlert
-  | StrongShortPivotPointAlert;
+  | StrongShortPivotPointAlert
+  | BullRelsiAlert
+  | BearRelsiAlert
+  | BullMarubozuAlert
+  | BearMarubozuAlert
+  | IstinoeBullPogloshenieAlert
+  | IstinoeBearPogloshenieAlert;
 
 export interface ExchangeGateway {
   ensureLeverage?(symbolId: string, leverage: string): Promise<void>;
@@ -140,6 +179,19 @@ export interface Strategy {
     bot: any,
     alert: StrongShortPivotPointAlert,
   ): Promise<void>;
+  // Методы для ThreeAlerts стратегии
+  onBullRelsi(bot: any, alert: BullRelsiAlert): Promise<void>;
+  onBearRelsi(bot: any, alert: BearRelsiAlert): Promise<void>;
+  onBullMarubozu(bot: any, alert: BullMarubozuAlert): Promise<void>;
+  onBearMarubozu(bot: any, alert: BearMarubozuAlert): Promise<void>;
+  onIstinoeBullPogloshenie(
+    bot: any,
+    alert: IstinoeBullPogloshenieAlert,
+  ): Promise<void>;
+  onIstinoeBearPogloshenie(
+    bot: any,
+    alert: IstinoeBearPogloshenieAlert,
+  ): Promise<void>;
 }
 export type BotConfig = {
   name: string;
@@ -162,7 +214,8 @@ export type BotConfig = {
     | 'bot4'
     | 'domination'
     | 'trend-pivot-15m'
-    | 'trend-pivot-1h';
+    | 'trend-pivot-1h'
+    | 'three-alerts';
   smartvol?: { baseUsd: number; addFraction: number; leverage: number } | null;
   maxFills?: number;
 };
