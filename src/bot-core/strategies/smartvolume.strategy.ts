@@ -14,21 +14,11 @@ interface SmartVolumeState {
   lastUpdate: number;
 }
 
-// Состояние блокировки входа
-interface EntryBlockState {
-  symbol: string;
-  botName: string;
-  blockedUntil: number; // timestamp когда блокировка снимается
-}
-
 export class SmartVolumeStrategy implements Strategy {
   private readonly logger = new Logger(SmartVolumeStrategy.name);
 
   // In-memory хранилище состояния SmartVolume
   private smartVolumeStates = new Map<string, SmartVolumeState>();
-
-  // In-memory хранилище состояния блокировки входа
-  private entryBlockStates = new Map<string, EntryBlockState>();
 
   constructor(
     private readonly store: PositionsStore,
@@ -73,72 +63,10 @@ export class SmartVolumeStrategy implements Strategy {
     return now - lastUpdate <= timeoutMs;
   }
 
-  // Проверяем, заблокирован ли вход для символа
-  private isEntryBlocked(botName: string, symbol: string): boolean {
-    const key = this.getStateKey(botName, symbol);
-    const blockState = this.entryBlockStates.get(key);
-
-    if (!blockState) return false;
-
-    const now = Date.now();
-    if (now >= blockState.blockedUntil) {
-      // Блокировка истекла, удаляем состояние
-      this.entryBlockStates.delete(key);
-      return false;
-    }
-
-    return true;
-  }
-
-  // Блокируем вход на 1 час
-  private blockEntry(botName: string, symbol: string, reason: string): void {
-    const key = this.getStateKey(botName, symbol);
-    const blockedUntil = Date.now() + 60 * 60 * 1000; // 1 час
-
-    this.entryBlockStates.set(key, {
-      symbol,
-      botName,
-      blockedUntil,
-    });
-
-    this.logger.log(
-      `🔒 Вход заблокирован для ${symbol} (${botName}) на 1 час. Причина: ${reason}. Разблокировка в ${new Date(blockedUntil).toLocaleString()}`,
-    );
-  }
-
-  // Получаем время до разблокировки
-  private getTimeUntilUnblock(botName: string, symbol: string): string {
-    const key = this.getStateKey(botName, symbol);
-    const blockState = this.entryBlockStates.get(key);
-
-    if (!blockState) return 'не заблокирован';
-
-    const now = Date.now();
-    if (now >= blockState.blockedUntil) return 'разблокирован';
-
-    const remainingMs = blockState.blockedUntil - now;
-    const hours = Math.floor(remainingMs / (1000 * 60 * 60));
-    const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-
-    return `${hours}ч ${minutes}м`;
-  }
-
   async onOpen(bot, alert) {
     this.logger.log(
       `🚀 Стратегия SmartVolume onOpen для ${alert.symbol} @${alert.price}`,
     );
-
-    // Проверяем блокировку входа
-    if (this.isEntryBlocked(bot.name, alert.symbol)) {
-      const timeUntilUnblock = this.getTimeUntilUnblock(bot.name, alert.symbol);
-      this.logger.log(
-        `⏸ Вход заблокирован для ${alert.symbol} (${bot.name}) - ${timeUntilUnblock}`,
-      );
-      await bot.notify(
-        `⏸ ${bot.name}: Вход заблокирован для ${alert.symbol} - ${timeUntilUnblock}`,
-      );
-      return;
-    }
 
     // Проверяем таймфрейм - открываем ТОЛЬКО при 30m
     const timeframe = alert.timeframe || '30m';
@@ -475,54 +403,5 @@ export class SmartVolumeStrategy implements Strategy {
   // Метод для SmartVolumeOpen (аналогичен onOpen)
   async onSmartVolumeOpen(bot, alert) {
     return this.onOpen(bot, alert);
-  }
-
-  // Новые методы для обработки алертов синхронизации
-  async onFixedShortSynchronization(bot, alert) {
-    this.logger.log(
-      `🔒 Fixed Short Synchronization для ${alert.symbol} (${bot.name})`,
-    );
-
-    // Проверяем таймфрейм - обрабатываем ТОЛЬКО при 1h
-    const timeframe = alert.timeframe || '1h';
-    if (timeframe !== '1h') {
-      this.logger.log(
-        `⏸ Fixed Short Synchronization с таймфреймом ${timeframe} - пропускаю (нужен 1h)`,
-      );
-      return;
-    }
-
-    // Блокируем вход на 1 час
-    this.blockEntry(bot.name, alert.symbol, 'Fixed Short Synchronization');
-
-    await bot.notify(
-      `🔒 ${bot.name}: Fixed Short Synchronization для ${alert.symbol} @${alert.price}\n` +
-        `⏸ Вход заблокирован на 1 час\n` +
-        `📅 Разблокировка: ${new Date(Date.now() + 60 * 60 * 1000).toLocaleString()}`,
-    );
-  }
-
-  async onLiveShortSynchronization(bot, alert) {
-    this.logger.log(
-      `🔒 Live Short Synchronization для ${alert.symbol} (${bot.name})`,
-    );
-
-    // Проверяем таймфрейм - обрабатываем ТОЛЬКО при 1h
-    const timeframe = alert.timeframe || '1h';
-    if (timeframe !== '1h') {
-      this.logger.log(
-        `⏸ Live Short Synchronization с таймфреймом ${timeframe} - пропускаю (нужен 1h)`,
-      );
-      return;
-    }
-
-    // Блокируем вход на 1 час
-    this.blockEntry(bot.name, alert.symbol, 'Live Short Synchronization');
-
-    await bot.notify(
-      `🔒 ${bot.name}: Live Short Synchronization для ${alert.symbol} @${alert.price}\n` +
-        `⏸ Вход заблокирован на 1 час\n` +
-        `📅 Разблокировка: ${new Date(Date.now() + 60 * 60 * 1000).toLocaleString()}`,
-    );
   }
 }

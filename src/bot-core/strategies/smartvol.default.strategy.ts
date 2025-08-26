@@ -434,19 +434,4 @@ export class SmartVolDefaultStrategy implements Strategy {
       `🚀 ${bot.name}: BIG ADD сигнал для ${alert.symbol} @${alert.price}`,
     );
   }
-
-  // Методы для алертов синхронизации (не используются в Default стратегии)
-  async onFixedShortSynchronization(bot, alert) {
-    this.logger.log(
-      `🔒 Fixed Short Synchronization не используется в Default стратегии`,
-    );
-    // Молча пропускаем - не отправляем уведомления
-  }
-
-  async onLiveShortSynchronization(bot, alert) {
-    this.logger.log(
-      `🔒 Live Short Synchronization не используется в Default стратегии`,
-    );
-    // Молча пропускаем - не отправляем уведомления
-  }
 }

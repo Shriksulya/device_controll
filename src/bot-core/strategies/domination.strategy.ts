@@ -361,12 +361,4 @@ export class DominationStrategy
   async onVolumeUp(bot: any, alert: any): Promise<void> {
     // Не используется
   }
-
-  async onFixedShortSynchronization(bot: any, alert: any): Promise<void> {
-    // Не используется в Domination стратегии
-  }
-
-  async onLiveShortSynchronization(bot: any, alert: any): Promise<void> {
-    // Не используется в Domination стратегии
-  }
 }
