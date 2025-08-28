@@ -184,7 +184,7 @@ export class TrendPivotStrategy implements Strategy {
   async onShortTrend(bot: any, alert: any): Promise<void> {
     const timeframe = alert.timeframe || '15m';
     this.logger.log(
-      `📉 Short Trend для ${alert.symbol} на ${timeframe} (${bot.name})`,
+      `📉 Short Trend для ${alert.symbol} на ${timeframe} (${bot.name}) - Цена: ${alert.price}, Тип: ${typeof alert.price}`,
     );
 
     // Сохраняем в БД
@@ -458,6 +458,9 @@ export class TrendPivotStrategy implements Strategy {
     exitPrice: string,
   ): Promise<void> {
     try {
+      this.logger.log(
+        `🔍 EXIT DEBUG: exitPrice=${exitPrice}, тип=${typeof exitPrice}, isNaN=${isNaN(Number(exitPrice))}`,
+      );
       // Определяем тип разворота для логики закрытия
       const originalDirection = position.meta?.originalDirection || 'long';
       const fourHourDirection = await this.getCurrentTrendDirection(
@@ -512,7 +515,27 @@ export class TrendPivotStrategy implements Strategy {
 
         // Получаем информацию для подробного уведомления
         const entryPrice = parseFloat(position.avgEntryPrice);
-        const exitPriceValue = parseFloat(exitPrice);
+
+        this.logger.log(
+          `🔍 EXIT DEBUG: exitPrice=${exitPrice}, тип=${typeof exitPrice}, JSON=${JSON.stringify(exitPrice)}`,
+        );
+
+        let exitPriceValue = parseFloat(exitPrice);
+
+        this.logger.log(
+          `🔍 PnL DEBUG: entryPrice=${entryPrice}, exitPrice=${exitPrice}, exitPriceValue=${exitPriceValue}, isNaN=${isNaN(exitPriceValue)}`,
+        );
+
+        // Проверяем на NaN
+        if (isNaN(exitPriceValue)) {
+          this.logger.error(
+            `❌ Цена выхода NaN: ${exitPrice} - что-то пошло не так с ценой в алерте`,
+          );
+          throw new Error(
+            `Цена выхода NaN: ${exitPrice} - алерт пришел со сломанной ценой`,
+          );
+        }
+
         const pnl = exitPriceValue - entryPrice;
         const pnlPercent = (pnl / entryPrice) * 100;
         const pnlColor = pnl >= 0 ? '🟢' : '🔴';
@@ -556,7 +579,23 @@ export class TrendPivotStrategy implements Strategy {
 
         // Используем цену из алерта для расчета PnL
         const entryPrice = parseFloat(position.avgEntryPrice);
-        const exitPriceValue = parseFloat(exitPrice);
+
+        this.logger.log(
+          `🔍 PARTIAL EXIT DEBUG: exitPrice=${exitPrice}, тип=${typeof exitPrice}, JSON=${JSON.stringify(exitPrice)}`,
+        );
+
+        let exitPriceValue = parseFloat(exitPrice);
+
+        // Проверяем на NaN
+        if (isNaN(exitPriceValue)) {
+          this.logger.error(
+            `❌ Цена выхода NaN: ${exitPrice} - что-то пошло не так с ценой в алерте`,
+          );
+          throw new Error(
+            `Цена выхода NaN: ${exitPrice} - алерт пришел со сломанной ценой`,
+          );
+        }
+
         const pnl = exitPriceValue - entryPrice;
         const pnlPercent = (pnl / entryPrice) * 100;
         const pnlColor = pnl >= 0 ? '🟢' : '🔴';
