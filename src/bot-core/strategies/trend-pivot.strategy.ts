@@ -176,7 +176,7 @@ export class TrendPivotStrategy implements Strategy {
     if (timeframe === '4h') {
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      await this.processTrendChange(bot, alert.symbol, timeframe);
+      await this.processTrendChange(bot, alert.symbol, timeframe, alert.price);
     }
   }
 
@@ -200,7 +200,7 @@ export class TrendPivotStrategy implements Strategy {
     if (timeframe === '4h') {
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      await this.processTrendChange(bot, alert.symbol, timeframe);
+      await this.processTrendChange(bot, alert.symbol, timeframe, alert.price);
     }
   }
 
@@ -221,7 +221,7 @@ export class TrendPivotStrategy implements Strategy {
     if (timeframe === '4h') {
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      await this.processTrendChange(bot, alert.symbol, timeframe);
+      await this.processTrendChange(bot, alert.symbol, timeframe, alert.price);
     }
   }
 
@@ -245,7 +245,7 @@ export class TrendPivotStrategy implements Strategy {
     if (timeframe === '4h') {
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      await this.processTrendChange(bot, alert.symbol, timeframe);
+      await this.processTrendChange(bot, alert.symbol, timeframe, alert.price);
     }
   }
 
@@ -269,7 +269,7 @@ export class TrendPivotStrategy implements Strategy {
     if (timeframe === '4h') {
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      await this.processTrendChange(bot, alert.symbol, timeframe);
+      await this.processTrendChange(bot, alert.symbol, timeframe, alert.price);
     }
   }
 
@@ -293,7 +293,7 @@ export class TrendPivotStrategy implements Strategy {
     if (timeframe === '4h') {
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      await this.processTrendChange(bot, alert.symbol, timeframe);
+      await this.processTrendChange(bot, alert.symbol, timeframe, alert.price);
     }
   }
 
@@ -302,6 +302,7 @@ export class TrendPivotStrategy implements Strategy {
     bot: any,
     symbol: string,
     timeframe: string,
+    alertPrice?: string,
   ): Promise<void> {
     try {
       const existing = await this.store.findOpen(bot.name, symbol);
@@ -321,7 +322,7 @@ export class TrendPivotStrategy implements Strategy {
           this.logger.log(
             `✅ 4ч тренд + подтверждение на ${timeframe} совпадают - входим в позицию`,
           );
-          await this.enterPosition(bot, symbol, timeframe);
+          await this.enterPosition(bot, symbol, timeframe, alertPrice || '0');
         }
       }
     } catch (error) {
@@ -347,6 +348,7 @@ export class TrendPivotStrategy implements Strategy {
     bot: any,
     symbol: string,
     timeframe: string,
+    entryPrice: string,
   ): Promise<void> {
     try {
       const existing = await this.store.findOpen(bot.name, symbol);
@@ -356,16 +358,8 @@ export class TrendPivotStrategy implements Strategy {
       }
 
       const symbolId = toBitgetSymbolId(symbol);
-      // Получаем текущую цену для уведомления
-      let currentPrice = '0';
-      try {
-        const ticker = await bot.exchange.getTicker?.(symbolId);
-        currentPrice = ticker?.last || '0';
-      } catch (error) {
-        this.logger.warn(
-          `⚠️ Не удалось получить цену для ${symbol}: ${error.message}`,
-        );
-      }
+      // Используем цену из алерта для уведомления
+      const currentPrice = entryPrice;
 
       // Устанавливаем плечо
       if (bot.cfg.smartvol?.leverage) {
