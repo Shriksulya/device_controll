@@ -106,15 +106,25 @@ export class TrendPivotStrategy implements Strategy {
         '4h',
       );
 
+      this.logger.log(
+        `🔍 CAN ENTER DEBUG: ${symbol} на ${timeframe}, ${timeframe} тренд: ${timeframeDirection}, 4h тренд: ${fourHourDirection}`,
+      );
+
       // Входим только если:
       // 1. Есть 4ч тренд (определяет общее направление)
       // 2. И пришло подтверждение на 15м/1ч в том же направлении
       // 3. И направления совпадают
-      return !!(
+      const canEnter = !!(
         fourHourDirection && // Должен быть 4ч тренд
         timeframeDirection && // Должно быть подтверждение на 15м/1ч
         timeframeDirection === fourHourDirection // Направления должны совпадать
       );
+
+      this.logger.log(
+        `🔍 CAN ENTER RESULT: ${symbol} на ${timeframe} - ${canEnter ? '✅ ВХОД РАЗРЕШЕН' : '❌ ВХОД ЗАПРЕЩЕН'}`,
+      );
+
+      return canEnter;
     } catch (error) {
       this.logger.error(`❌ Ошибка проверки входа в позицию: ${error.message}`);
       return false;
@@ -305,6 +315,10 @@ export class TrendPivotStrategy implements Strategy {
     price: string, // ← Это цена, а не объект алерта!
   ): Promise<void> {
     try {
+      this.logger.log(
+        `🔍 PROCESS TREND CHANGE: ${bot.name} обрабатывает ${symbol} на ${timeframe}, цена: ${price}`,
+      );
+
       const existing = await this.store.findOpen(bot.name, symbol);
 
       if (existing) {
@@ -343,8 +357,13 @@ export class TrendPivotStrategy implements Strategy {
     bot: any,
     symbol: string,
   ): Promise<void> {
-    // Проверяем все таймфреймы бота
-    const timeframes = ['15m', '1h'];
+    // Проверяем только те таймфреймы, с которыми работает бот
+    const botTimeframes = bot.cfg.timeframe_trend || [];
+    const timeframes = botTimeframes.filter((tf) => tf !== '4h'); // Исключаем 4h
+
+    this.logger.log(
+      `🔍 4h тренд изменился для ${symbol}, проверяю таймфреймы бота: [${timeframes.join(', ')}]`,
+    );
 
     for (const timeframe of timeframes) {
       // Для 4h изменений просто проверяем существующие позиции

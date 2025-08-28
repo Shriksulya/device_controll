@@ -256,8 +256,9 @@ export class AlertsRouter {
     price: string;
     timeframe?: string;
   }) {
+    const alertTimeframe = alert.timeframe || '15m';
     this.log.log(
-      `🎯 Обрабатываю TrendPivot сигнал: ${alert.type} для ${alert.symbol}`,
+      `🎯 Обрабатываю TrendPivot сигнал: ${alert.type} для ${alert.symbol} на ${alertTimeframe}`,
     );
 
     // Получаем только ботов с strategy: 'trend-pivot'
@@ -275,6 +276,14 @@ export class AlertsRouter {
     this.log.log(
       `🎯 Найдено ${bots.length} ботов для TrendPivot стратегии: ${bots.map((b) => b.name).join(', ')}`,
     );
+
+    // Логируем конфигурацию каждого бота для отладки
+    for (const bot of bots) {
+      const botTimeframes = bot.cfg.timeframe_trend || [];
+      this.log.log(
+        `🔍 Бот ${bot.name}: работает с таймфреймами [${botTimeframes.join(', ')}], алерт: ${alertTimeframe}`,
+      );
+    }
 
     for (const bot of bots) {
       try {
@@ -317,8 +326,19 @@ export class AlertsRouter {
       return;
     }
 
+    // Проверяем таймфрейм алерта - бот должен работать с этим таймфреймом
+    const alertTimeframe = alert.timeframe || '15m';
+    const botTimeframes = bot.cfg.timeframe_trend || [];
+
+    if (!botTimeframes.includes(alertTimeframe)) {
+      this.log.log(
+        `⏭️ Бот ${bot.name} пропускает ${alert.symbol} на ${alertTimeframe} (работает с: ${botTimeframes.join(',')})`,
+      );
+      return;
+    }
+
     this.log.log(
-      `✅ Бот ${bot.name} обрабатывает TrendPivot алерт: ${alert.type} для ${alert.symbol}`,
+      `✅ Бот ${bot.name} обрабатывает TrendPivot алерт: ${alert.type} для ${alert.symbol} на ${alertTimeframe}`,
     );
 
     switch (alert.type) {
