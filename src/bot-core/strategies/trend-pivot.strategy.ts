@@ -409,11 +409,36 @@ export class TrendPivotStrategy implements Strategy {
       );
       await this.store.updatePosition(position);
 
+      // Получаем информацию о подтверждениях для подробного уведомления
+      const fourHourDirection = await this.getCurrentTrendDirection(
+        symbol,
+        '4h',
+      );
+      const timeframeDirection = await this.getCurrentTrendDirection(
+        symbol,
+        timeframe,
+      );
+      const fourHourConfirmations = await this.getTrendConfirmationCount(
+        symbol,
+        '4h',
+        fourHourDirection || 'long',
+      );
+      const timeframeConfirmations = await this.getTrendConfirmationCount(
+        symbol,
+        timeframe,
+        timeframeDirection || 'long',
+      );
+
       await bot.notify(
-        `✅ ${bot.name}: TREND ENTRY ${symbol} на ${timeframe}\n` +
-          `💰 Размер: $${baseUsd}\n` +
+        `✅ ${bot.name}: TREND ENTRY ${symbol}\n` +
+          `📊 Направление: ${timeframeDirection}\n` +
+          `⏰ Таймфрейм входа: ${timeframe}\n` +
+          `💰 Размер позиции: $${baseUsd}\n` +
           `💵 Цена входа: $${currentPrice}\n` +
-          `📊 Направление: ${await this.getCurrentTrendDirection(symbol, timeframe)}`,
+          `🔍 Подтверждения:\n` +
+          `   • 4ч: ${fourHourDirection} (${fourHourConfirmations} подтверждений)\n` +
+          `   • ${timeframe}: ${timeframeDirection} (${timeframeConfirmations} подтверждений)\n` +
+          `📈 Позиция открыта по совпадению направлений 4ч и ${timeframe} трендов`,
       );
     } catch (error) {
       this.logger.error(
@@ -485,9 +510,32 @@ export class TrendPivotStrategy implements Strategy {
         await bot.exchange.flashClose?.(symbol, 'long');
         await this.store.close(position, '0');
 
+        // Получаем текущую цену для расчета PnL
+        let exitPrice = parseFloat(position.avgEntryPrice); // По умолчанию используем цену входа
+        try {
+          const symbolId = toBitgetSymbolId(symbol);
+          const ticker = await bot.exchange.getTicker?.(symbolId);
+          exitPrice = parseFloat(ticker?.last || position.avgEntryPrice);
+        } catch (error) {
+          this.logger.warn(
+            `⚠️ Не удалось получить текущую цену для ${symbol}: ${error.message}`,
+          );
+        }
+
+        // Получаем информацию для подробного уведомления
+        const entryPrice = parseFloat(position.avgEntryPrice);
+        const pnl = exitPrice - entryPrice;
+        const pnlPercent = (pnl / entryPrice) * 100;
+        const pnlColor = pnl >= 0 ? '🟢' : '🔴';
+
         await bot.notify(
           `🛑 ${bot.name}: TREND EXIT ${symbol}\n` +
-            `📊 ${isFourHourReversal ? '4ч тренд развернулся' : `${timeframe} тренд изменился`} - позиция полностью закрыта`,
+            `📊 Причина: ${isFourHourReversal ? '4ч тренд развернулся' : `${timeframe} тренд изменился`}\n` +
+            `⏰ Таймфрейм: ${timeframe}\n` +
+            `💵 Цена входа: $${entryPrice.toFixed(4)}\n` +
+            `💵 Цена выхода: $${exitPrice.toFixed(4)}\n` +
+            `📈 PnL: ${pnlColor} $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)\n` +
+            `💰 Позиция полностью закрыта`,
         );
       } else {
         // Частичное закрытие
@@ -517,10 +565,32 @@ export class TrendPivotStrategy implements Strategy {
           (position.meta.closedConfirmations || 0) + 1;
         await this.store.updatePosition(position);
 
+        // Получаем текущую цену для расчета PnL
+        let exitPrice = parseFloat(position.avgEntryPrice);
+        try {
+          const symbolId = toBitgetSymbolId(symbol);
+          const ticker = await bot.exchange.getTicker?.(symbolId);
+          exitPrice = parseFloat(ticker?.last || position.avgEntryPrice);
+        } catch (error) {
+          this.logger.warn(
+            `⚠️ Не удалось получить текущую цену для ${symbol}: ${error.message}`,
+          );
+        }
+
+        const entryPrice = parseFloat(position.avgEntryPrice);
+        const pnl = exitPrice - entryPrice;
+        const pnlPercent = (pnl / entryPrice) * 100;
+        const pnlColor = pnl >= 0 ? '🟢' : '🔴';
+
         await bot.notify(
           `🔄 ${bot.name}: PARTIAL TREND EXIT ${symbol}\n` +
-            `📊 Закрыто ${closePercentage}% позиции (${confirmationCount} подтверждений)\n` +
-            `💰 Остаток: $${(currentAmount - closeAmount).toFixed(2)}`,
+            `📊 Причина: ${timeframe} тренд изменился\n` +
+            `⏰ Таймфрейм: ${timeframe}\n` +
+            `💵 Цена входа: $${entryPrice.toFixed(4)}\n` +
+            `💵 Цена выхода: $${exitPrice.toFixed(4)}\n` +
+            `📈 PnL: ${pnlColor} $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)\n` +
+            `💰 Закрыто: ${closePercentage}% позиции\n` +
+            `💸 Остаток: $${(currentAmount - closeAmount).toFixed(2)}`,
         );
       }
     } catch (error) {
