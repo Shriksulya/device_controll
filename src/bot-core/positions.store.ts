@@ -21,6 +21,11 @@ export class PositionsStore {
     price: string,
     amountUsd: string,
   ) {
+    // Логируем для отладки
+    console.log(
+      `🔍 STORE DEBUG: price=${price}, тип=${typeof price}, symbol=${symbol}`,
+    );
+
     const p = this.repo.create({
       botName,
       symbol,

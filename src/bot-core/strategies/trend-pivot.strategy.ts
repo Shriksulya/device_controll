@@ -163,7 +163,7 @@ export class TrendPivotStrategy implements Strategy {
   async onLongTrend(bot: any, alert: any): Promise<void> {
     const timeframe = alert.timeframe || '15m';
     this.logger.log(
-      `📈 Long Trend для ${alert.symbol} на ${timeframe} (${bot.name})`,
+      `📈 Long Trend для ${alert.symbol} на ${timeframe} (${bot.name}) - Цена: ${alert.price}, Тип: ${typeof alert.price}`,
     );
 
     // Сохраняем в БД
@@ -208,7 +208,7 @@ export class TrendPivotStrategy implements Strategy {
   async onLongPivotPoint(bot: any, alert: any): Promise<void> {
     const timeframe = alert.timeframe || '15m';
     this.logger.log(
-      `📊 Long Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
+      `📊 Long Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name}) - Цена: ${alert.price}, Тип: ${typeof alert.price}`,
     );
 
     // Сохраняем в БД
@@ -229,7 +229,7 @@ export class TrendPivotStrategy implements Strategy {
   async onShortPivotPoint(bot: any, alert: any): Promise<void> {
     const timeframe = alert.timeframe || '15m';
     this.logger.log(
-      `📊 Short Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
+      `📊 Short Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name}) - Цена: ${alert.price}, Тип: ${typeof alert.price}`,
     );
 
     // Сохраняем в БД
@@ -253,7 +253,7 @@ export class TrendPivotStrategy implements Strategy {
   async onStrongLongPivotPoint(bot: any, alert: any): Promise<void> {
     const timeframe = alert.timeframe || '15m';
     this.logger.log(
-      `🚀 Strong Long Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
+      `🚀 Strong Long Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name}) - Цена: ${alert.price}, Тип: ${typeof alert.price}`,
     );
 
     // Сохраняем в БД
@@ -277,7 +277,7 @@ export class TrendPivotStrategy implements Strategy {
   async onStrongShortPivotPoint(bot: any, alert: any): Promise<void> {
     const timeframe = alert.timeframe || '15m';
     this.logger.log(
-      `🚀 Strong Short Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
+      `🚀 Strong Short Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name}) - Цена: ${alert.price}, Тип: ${typeof alert.price}`,
     );
 
     // Сохраняем в БД
@@ -318,7 +318,7 @@ export class TrendPivotStrategy implements Strategy {
             symbol,
             existing,
             timeframe,
-            alert.price,
+            alert.price || '0',
           );
         }
       } else {
@@ -327,6 +327,10 @@ export class TrendPivotStrategy implements Strategy {
         if (await this.canEnterPosition(bot, symbol, timeframe)) {
           this.logger.log(
             `✅ 4ч тренд + подтверждение на ${timeframe} совпадают - входим в позицию`,
+          );
+          // Логируем цену для отладки
+          this.logger.log(
+            `🔍 DEBUG: alert.price=${alert.price}, тип=${typeof alert.price}`,
           );
           await this.enterPosition(bot, symbol, timeframe, alert.price);
         }
@@ -346,7 +350,24 @@ export class TrendPivotStrategy implements Strategy {
 
     for (const timeframe of timeframes) {
       // Для 4h изменений передаем пустой объект (не влияет на позиции)
-      await this.processTrendChange(bot, symbol, timeframe, { price: '0' });
+      // Но не вызываем processTrendChange, так как это может привести к ошибкам
+      // Вместо этого просто проверяем существующие позиции
+      const existing = await this.store.findOpen(bot.name, symbol);
+      if (existing) {
+        // Проверяем, нужно ли выйти из позиции при изменении 4ч тренда
+        const fourHourDirection = await this.getCurrentTrendDirection(
+          symbol,
+          '4h',
+        );
+        const originalDirection = existing.meta?.originalDirection || 'long';
+
+        if (fourHourDirection && fourHourDirection !== originalDirection) {
+          this.logger.log(
+            `🔄 4ч тренд развернулся для ${symbol} - выходим из позиции`,
+          );
+          await this.exitPosition(bot, symbol, existing, timeframe, '0');
+        }
+      }
     }
   }
 
@@ -358,6 +379,11 @@ export class TrendPivotStrategy implements Strategy {
     entryPrice: string,
   ): Promise<void> {
     try {
+      // Логируем цену для отладки
+      this.logger.log(
+        `🔍 ENTER DEBUG: entryPrice=${entryPrice}, тип=${typeof entryPrice}`,
+      );
+
       const existing = await this.store.findOpen(bot.name, symbol);
       if (existing) {
         this.logger.log(`⚠️ Позиция ${symbol} уже открыта для ${bot.name}`);
