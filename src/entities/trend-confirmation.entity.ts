@@ -10,7 +10,7 @@ export type TrendDirection = 'long' | 'short';
 
 @Entity('trend_confirmations')
 @Index(['symbol', 'timeframe'])
-@Index(['symbol', 'timeframe', 'expiresAt'])
+@Index(['symbol', 'timeframe'])
 @Index(['symbol', 'meta'], { unique: true, where: "meta->>'name' IS NOT NULL" })
 export class TrendConfirmationEntity {
   @PrimaryGeneratedColumn()
@@ -28,8 +28,8 @@ export class TrendConfirmationEntity {
   @CreateDateColumn()
   createdAt: Date;
 
-  @Column({ type: 'timestamp with time zone' })
-  expiresAt: Date; // TTL = 2×tf
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  expiresAt?: Date; // TTL = 2×tf
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   source?: string;

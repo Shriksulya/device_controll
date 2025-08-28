@@ -2,7 +2,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import botsConfig from './config/bots.config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PositionEntity } from './entities/position.entity';
 import { TrendConfirmationEntity } from './entities/trend-confirmation.entity';
 import { TrendModule } from './trend/trend.module';
@@ -47,7 +48,16 @@ import { AlertsRouter } from './bot-core/alerts.router';
     PositionsStore,
     AppInitService,
     DominationStrategy,
-    TrendPivotStrategy,
+    {
+      provide: TrendPivotStrategy,
+      useFactory: (
+        trendRepo: Repository<TrendConfirmationEntity>,
+        positions: PositionsStore,
+      ) => {
+        return new TrendPivotStrategy(trendRepo, positions);
+      },
+      inject: [getRepositoryToken(TrendConfirmationEntity), PositionsStore],
+    },
     AlertsRouter,
   ],
 })

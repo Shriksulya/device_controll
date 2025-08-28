@@ -30,6 +30,8 @@ export class BotsRegistry {
     private readonly volumeUp: VolumeUpService,
     private readonly positions: PositionsStore,
     private readonly bitget: BitgetService,
+    private readonly dominationStrategy: DominationStrategy,
+    private readonly trendPivotStrategy: TrendPivotStrategy,
   ) {}
 
   all() {
@@ -117,10 +119,10 @@ export class BotsRegistry {
       // Выбираем стратегию в зависимости от конфигурации
       let strategy: Strategy;
       if (c.strategy === 'domination') {
-        strategy = new DominationStrategy(this.positions, this.telegram);
+        strategy = this.dominationStrategy;
         this.log.log(`🎯 Бот ${c.name} использует Domination стратегию`);
       } else if (c.strategy === 'trend-pivot') {
-        strategy = new TrendPivotStrategy(this.positions);
+        strategy = this.trendPivotStrategy;
         this.log.log(`🎯 Бот ${c.name} использует TrendPivot стратегию`);
       } else if (c.strategy === 'three-alerts') {
         strategy = new ThreeAlertsStrategy(this.positions, notifier);
@@ -138,7 +140,7 @@ export class BotsRegistry {
         this.log.log(`📊 Бот ${c.name} использует SmartVolume стратегию`);
       } else {
         strategy = new SmartVolDefaultStrategy(this.positions, this.volumeUp);
-        this.log.log(`📊 Бот ${c.name} использует SmartVol стратегию`);
+        this.log.log(`📊 Бот ${c.name} использует SmartVolume стратегию`);
       }
 
       const engine = new BotEngine(

@@ -1,139 +1,92 @@
 import { Strategy } from '../interfaces';
 import { toBitgetSymbolId } from '../utils';
 import { PositionsStore } from '../positions.store';
-import { Logger } from '@nestjs/common';
-
-// Интерфейс для трендового состояния
-interface TrendState {
-  symbol: string;
-  botName: string;
-  timeframe: string; // '15m' или '1h'
-  longTrendCount: number;
-  shortTrendCount: number;
-  longPivotCount: number;
-  shortPivotCount: number;
-  strongLongPivotCount: number;
-  strongShortPivotCount: number;
-  lastUpdate: Date;
-}
-
-// Интерфейс для 4h тренда
-interface FourHourTrend {
-  symbol: string;
-  longTrendCount: number;
-  shortTrendCount: number;
-  longPivotCount: number;
-  shortPivotCount: number;
-  strongLongPivotCount: number;
-  strongShortPivotCount: number;
-  lastUpdate: Date;
-}
+import { Logger, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import {
+  TrendConfirmationEntity,
+  TrendDirection,
+} from '../../entities/trend-confirmation.entity';
 
 export class TrendPivotStrategy implements Strategy {
   private readonly logger = new Logger(TrendPivotStrategy.name);
 
-  // In-memory хранилище состояния трендов для 15m и 1h
-  private trendStates = new Map<string, TrendState>();
+  constructor(
+    @InjectRepository(TrendConfirmationEntity)
+    private readonly trendRepo: Repository<TrendConfirmationEntity>,
+    private readonly store: PositionsStore,
+  ) {}
 
-  // In-memory хранилище 4h трендов
-  private fourHourTrends = new Map<string, FourHourTrend>();
-
-  constructor(private readonly store: PositionsStore) {}
-
-  // Генерируем ключ для состояния тренда
-  private getTrendStateKey(
-    botName: string,
+  // Сохраняем подтверждение тренда в БД (перезаписывает предыдущее)
+  private async saveTrendConfirmation(
     symbol: string,
     timeframe: string,
-  ): string {
-    return `${botName}:${symbol}:${timeframe}`;
-  }
+    direction: TrendDirection,
+    source: string,
+    meta?: any,
+  ): Promise<void> {
+    try {
+      // Удаляем предыдущие подтверждения для этого символа и таймфрейма
+      await this.trendRepo.delete({ symbol, timeframe });
 
-  // Генерируем ключ для 4h тренда
-  private getFourHourKey(symbol: string): string {
-    return `${symbol}:4h`;
-  }
-
-  // Получаем или создаем состояние тренда
-  private getOrCreateTrendState(
-    botName: string,
-    symbol: string,
-    timeframe: string,
-  ): TrendState {
-    const key = this.getTrendStateKey(botName, symbol, timeframe);
-    let state = this.trendStates.get(key);
-
-    if (!state) {
-      state = {
+      // Создаем новое подтверждение
+      const confirmation = this.trendRepo.create({
         symbol,
-        botName,
         timeframe,
-        longTrendCount: 0,
-        shortTrendCount: 0,
-        longPivotCount: 0,
-        shortPivotCount: 0,
-        strongLongPivotCount: 0,
-        strongShortPivotCount: 0,
-        lastUpdate: new Date(),
-      };
-      this.trendStates.set(key, state);
+        direction,
+        source,
+        meta,
+        // expiresAt не используется для trend-pivot
+      });
+
+      await this.trendRepo.save(confirmation);
+      this.logger.log(
+        `💾 Сохранено подтверждение тренда: ${direction} для ${symbol} на ${timeframe}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Ошибка сохранения подтверждения тренда: ${error.message}`,
+      );
     }
-
-    return state;
   }
 
-  // Получаем или создаем 4h тренд
-  private getOrCreateFourHourTrend(symbol: string): FourHourTrend {
-    const key = this.getFourHourKey(symbol);
-    let trend = this.fourHourTrends.get(key);
-
-    if (!trend) {
-      trend = {
-        symbol,
-        longTrendCount: 0,
-        shortTrendCount: 0,
-        longPivotCount: 0,
-        shortPivotCount: 0,
-        strongLongPivotCount: 0,
-        strongShortPivotCount: 0,
-        lastUpdate: new Date(),
-      };
-      this.fourHourTrends.set(key, trend);
+  // Получаем количество подтверждений для направления тренда
+  private async getTrendConfirmationCount(
+    symbol: string,
+    timeframe: string,
+    direction: TrendDirection,
+  ): Promise<number> {
+    try {
+      const confirmations = await this.trendRepo.find({
+        where: { symbol, timeframe, direction },
+      });
+      return confirmations.length;
+    } catch (error) {
+      this.logger.error(
+        `❌ Ошибка получения количества подтверждений: ${error.message}`,
+      );
+      return 0;
     }
-
-    return trend;
   }
 
-  // Определяем общее направление тренда
-  private getTrendDirection(counts: {
-    long: number;
-    short: number;
-  }): 'long' | 'short' | 'neutral' {
-    if (counts.long > counts.short) return 'long';
-    if (counts.short > counts.long) return 'short';
-    return 'neutral';
-  }
-
-  // Рассчитываем общие счетчики для тренда
-  private calculateTotalTrendCounts(state: TrendState) {
-    const longTotal =
-      state.longTrendCount + state.longPivotCount + state.strongLongPivotCount;
-    const shortTotal =
-      state.shortTrendCount +
-      state.shortPivotCount +
-      state.strongShortPivotCount;
-    return { long: longTotal, short: shortTotal };
-  }
-
-  // Рассчитываем общие счетчики для 4h
-  private calculateFourHourTrendCounts(trend: FourHourTrend) {
-    const longTotal =
-      trend.longTrendCount + trend.longPivotCount + trend.strongLongPivotCount;
-    const shortTotal =
-      trend.shortTrendCount +
-      trend.shortPivotCount +
-      trend.strongShortPivotCount;
-    return { long: longTotal, short: shortTotal };
+  // Получаем текущее направление тренда из БД
+  private async getCurrentTrendDirection(
+    symbol: string,
+    timeframe: string,
+  ): Promise<TrendDirection | null> {
+    try {
+      const confirmation = await this.trendRepo.findOne({
+        where: { symbol, timeframe },
+        order: { createdAt: 'DESC' },
+      });
+      return confirmation?.direction || null;
+    } catch (error) {
+      this.logger.error(
+        `❌ Ошибка получения направления тренда: ${error.message}`,
+      );
+      return null;
+    }
   }
 
   // Проверяем, можно ли войти в позицию
@@ -142,21 +95,27 @@ export class TrendPivotStrategy implements Strategy {
     symbol: string,
     timeframe: string,
   ): Promise<boolean> {
-    const state = this.getOrCreateTrendState(bot.name, symbol, timeframe);
-    const fourHourTrend = this.getOrCreateFourHourTrend(symbol);
+    try {
+      // Получаем направления трендов
+      const timeframeDirection = await this.getCurrentTrendDirection(
+        symbol,
+        timeframe,
+      );
+      const fourHourDirection = await this.getCurrentTrendDirection(
+        symbol,
+        '4h',
+      );
 
-    const timeframeDirection = this.getTrendDirection(
-      this.calculateTotalTrendCounts(state),
-    );
-    const fourHourDirection = this.getTrendDirection(
-      this.calculateFourHourTrendCounts(fourHourTrend),
-    );
-
-    // Входим только если направления совпадают
-    return (
-      timeframeDirection === fourHourDirection &&
-      timeframeDirection !== 'neutral'
-    );
+      // Входим только если направления совпадают и не нейтральные
+      return !!(
+        timeframeDirection &&
+        fourHourDirection &&
+        timeframeDirection === fourHourDirection
+      );
+    } catch (error) {
+      this.logger.error(`❌ Ошибка проверки входа в позицию: ${error.message}`);
+      return false;
+    }
   }
 
   // Проверяем, нужно ли выйти из позиции
@@ -165,18 +124,28 @@ export class TrendPivotStrategy implements Strategy {
     symbol: string,
     timeframe: string,
   ): Promise<boolean> {
-    const state = this.getOrCreateTrendState(bot.name, symbol, timeframe);
-    const fourHourTrend = this.getOrCreateFourHourTrend(symbol);
+    try {
+      const timeframeDirection = await this.getCurrentTrendDirection(
+        symbol,
+        timeframe,
+      );
+      const fourHourDirection = await this.getCurrentTrendDirection(
+        symbol,
+        '4h',
+      );
 
-    const timeframeDirection = this.getTrendDirection(
-      this.calculateTotalTrendCounts(state),
-    );
-    const fourHourDirection = this.getTrendDirection(
-      this.calculateFourHourTrendCounts(fourHourTrend),
-    );
-
-    // Выходим если направления не совпадают
-    return timeframeDirection !== fourHourDirection;
+      // Выходим если направления не совпадают или один из трендов изменился
+      return (
+        !timeframeDirection ||
+        !fourHourDirection ||
+        timeframeDirection !== fourHourDirection
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Ошибка проверки выхода из позиции: ${error.message}`,
+      );
+      return false;
+    }
   }
 
   // Обработка long trend алерта
@@ -186,33 +155,16 @@ export class TrendPivotStrategy implements Strategy {
       `📈 Long Trend для ${alert.symbol} на ${timeframe} (${bot.name})`,
     );
 
+    // Сохраняем в БД
+    await this.saveTrendConfirmation(alert.symbol, timeframe, 'long', 'trend', {
+      type: 'trend',
+      botName: bot.name,
+    });
+
+    // Обрабатываем изменение тренда
     if (timeframe === '4h') {
-      // 4h алерт - обновляем 4h тренд
-      const trend = this.getOrCreateFourHourTrend(alert.symbol);
-
-      // Сбрасываем short счетчики и увеличиваем long
-      trend.shortTrendCount = 0;
-      trend.shortPivotCount = 0;
-      trend.strongShortPivotCount = 0;
-      trend.longTrendCount++;
-      trend.lastUpdate = new Date();
-
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      // 15m/1h алерт - обновляем тренд таймфрейма
-      const state = this.getOrCreateTrendState(
-        bot.name,
-        alert.symbol,
-        timeframe,
-      );
-
-      // Сбрасываем short счетчики и увеличиваем long
-      state.shortTrendCount = 0;
-      state.shortPivotCount = 0;
-      state.strongShortPivotCount = 0;
-      state.longTrendCount++;
-      state.lastUpdate = new Date();
-
       await this.processTrendChange(bot, alert.symbol, timeframe);
     }
   }
@@ -224,33 +176,19 @@ export class TrendPivotStrategy implements Strategy {
       `📉 Short Trend для ${alert.symbol} на ${timeframe} (${bot.name})`,
     );
 
+    // Сохраняем в БД
+    await this.saveTrendConfirmation(
+      alert.symbol,
+      timeframe,
+      'short',
+      'trend',
+      { type: 'trend', botName: bot.name },
+    );
+
+    // Обрабатываем изменение тренда
     if (timeframe === '4h') {
-      // 4h алерт - обновляем 4h тренд
-      const trend = this.getOrCreateFourHourTrend(alert.symbol);
-
-      // Сбрасываем long счетчики и увеличиваем short
-      trend.longTrendCount = 0;
-      trend.longPivotCount = 0;
-      trend.strongLongPivotCount = 0;
-      trend.shortTrendCount++;
-      trend.lastUpdate = new Date();
-
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      // 15m/1h алерт - обновляем тренд таймфрейма
-      const state = this.getOrCreateTrendState(
-        bot.name,
-        alert.symbol,
-        timeframe,
-      );
-
-      // Сбрасываем long счетчики и увеличиваем short
-      state.longTrendCount = 0;
-      state.longPivotCount = 0;
-      state.strongLongPivotCount = 0;
-      state.shortTrendCount++;
-      state.lastUpdate = new Date();
-
       await this.processTrendChange(bot, alert.symbol, timeframe);
     }
   }
@@ -262,33 +200,16 @@ export class TrendPivotStrategy implements Strategy {
       `📊 Long Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
     );
 
+    // Сохраняем в БД
+    await this.saveTrendConfirmation(alert.symbol, timeframe, 'long', 'pivot', {
+      type: 'pivot',
+      botName: bot.name,
+    });
+
+    // Обрабатываем изменение тренда
     if (timeframe === '4h') {
-      // 4h алерт - обновляем 4h тренд
-      const trend = this.getOrCreateFourHourTrend(alert.symbol);
-
-      // Сбрасываем short счетчики и увеличиваем long
-      trend.shortTrendCount = 0;
-      trend.shortPivotCount = 0;
-      trend.strongShortPivotCount = 0;
-      trend.longPivotCount++;
-      trend.lastUpdate = new Date();
-
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      // 15m/1h алерт - обновляем тренд таймфрейма
-      const state = this.getOrCreateTrendState(
-        bot.name,
-        alert.symbol,
-        timeframe,
-      );
-
-      // Сбрасываем short счетчики и увеличиваем long
-      state.shortTrendCount = 0;
-      state.shortPivotCount = 0;
-      state.strongShortPivotCount = 0;
-      state.longPivotCount++;
-      state.lastUpdate = new Date();
-
       await this.processTrendChange(bot, alert.symbol, timeframe);
     }
   }
@@ -300,33 +221,19 @@ export class TrendPivotStrategy implements Strategy {
       `📊 Short Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
     );
 
+    // Сохраняем в БД
+    await this.saveTrendConfirmation(
+      alert.symbol,
+      timeframe,
+      'short',
+      'pivot',
+      { type: 'pivot', botName: bot.name },
+    );
+
+    // Обрабатываем изменение тренда
     if (timeframe === '4h') {
-      // 4h алерт - обновляем 4h тренд
-      const trend = this.getOrCreateFourHourTrend(alert.symbol);
-
-      // Сбрасываем long счетчики и увеличиваем short
-      trend.longPivotCount = 0;
-      trend.longTrendCount = 0;
-      trend.strongLongPivotCount = 0;
-      trend.shortPivotCount++;
-      trend.lastUpdate = new Date();
-
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      // 15m/1h алерт - обновляем тренд таймфрейма
-      const state = this.getOrCreateTrendState(
-        bot.name,
-        alert.symbol,
-        timeframe,
-      );
-
-      // Сбрасываем long счетчики и увеличиваем short
-      state.longTrendCount = 0;
-      state.longPivotCount = 0;
-      state.strongLongPivotCount = 0;
-      state.shortPivotCount++;
-      state.lastUpdate = new Date();
-
       await this.processTrendChange(bot, alert.symbol, timeframe);
     }
   }
@@ -338,33 +245,19 @@ export class TrendPivotStrategy implements Strategy {
       `🚀 Strong Long Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
     );
 
+    // Сохраняем в БД
+    await this.saveTrendConfirmation(
+      alert.symbol,
+      timeframe,
+      'long',
+      'strong-pivot',
+      { type: 'strong-pivot', botName: bot.name },
+    );
+
+    // Обрабатываем изменение тренда
     if (timeframe === '4h') {
-      // 4h алерт - обновляем 4h тренд
-      const trend = this.getOrCreateFourHourTrend(alert.symbol);
-
-      // Сбрасываем short счетчики и увеличиваем strong long
-      trend.shortTrendCount = 0;
-      trend.shortPivotCount = 0;
-      trend.strongShortPivotCount = 0;
-      trend.strongLongPivotCount++;
-      trend.lastUpdate = new Date();
-
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      // 15m/1h алерт - обновляем тренд таймфрейма
-      const state = this.getOrCreateTrendState(
-        bot.name,
-        alert.symbol,
-        timeframe,
-      );
-
-      // Сбрасываем short счетчики и увеличиваем strong long
-      state.shortTrendCount = 0;
-      state.shortPivotCount = 0;
-      state.strongShortPivotCount = 0;
-      state.strongLongPivotCount++;
-      state.lastUpdate = new Date();
-
       await this.processTrendChange(bot, alert.symbol, timeframe);
     }
   }
@@ -376,33 +269,19 @@ export class TrendPivotStrategy implements Strategy {
       `🚀 Strong Short Pivot Point для ${alert.symbol} на ${timeframe} (${bot.name})`,
     );
 
+    // Сохраняем в БД
+    await this.saveTrendConfirmation(
+      alert.symbol,
+      timeframe,
+      'short',
+      'strong-pivot',
+      { type: 'strong-pivot', botName: bot.name },
+    );
+
+    // Обрабатываем изменение тренда
     if (timeframe === '4h') {
-      // 4h алерт - обновляем 4h тренд
-      const trend = this.getOrCreateFourHourTrend(alert.symbol);
-
-      // Сбрасываем long счетчики и увеличиваем strong short
-      trend.longTrendCount = 0;
-      trend.longPivotCount = 0;
-      trend.strongLongPivotCount = 0;
-      trend.strongShortPivotCount++;
-      trend.lastUpdate = new Date();
-
       await this.processFourHourTrendChange(bot, alert.symbol);
     } else {
-      // 15m/1h алерт - обновляем тренд таймфрейма
-      const state = this.getOrCreateTrendState(
-        bot.name,
-        alert.symbol,
-        timeframe,
-      );
-
-      // Сбрасываем long счетчики и увеличиваем strong short
-      state.longTrendCount = 0;
-      state.longPivotCount = 0;
-      state.strongLongPivotCount = 0;
-      state.strongShortPivotCount++;
-      state.lastUpdate = new Date();
-
       await this.processTrendChange(bot, alert.symbol, timeframe);
     }
   }
@@ -413,24 +292,28 @@ export class TrendPivotStrategy implements Strategy {
     symbol: string,
     timeframe: string,
   ): Promise<void> {
-    const existing = await this.store.findOpen(bot.name, symbol);
+    try {
+      const existing = await this.store.findOpen(bot.name, symbol);
 
-    if (existing) {
-      // Проверяем, нужно ли выйти из позиции
-      if (await this.shouldExitPosition(bot, symbol, timeframe)) {
-        this.logger.log(
-          `🔄 Тренд изменился для ${symbol} на ${timeframe} - выходим из позиции`,
-        );
-        await this.exitPosition(bot, symbol, existing);
+      if (existing) {
+        // Проверяем, нужно ли выйти из позиции
+        if (await this.shouldExitPosition(bot, symbol, timeframe)) {
+          this.logger.log(
+            `🔄 Тренд изменился для ${symbol} на ${timeframe} - выходим из позиции`,
+          );
+          await this.exitPosition(bot, symbol, existing, timeframe);
+        }
+      } else {
+        // Проверяем, можно ли войти в позицию
+        if (await this.canEnterPosition(bot, symbol, timeframe)) {
+          this.logger.log(
+            `✅ Направления совпадают для ${symbol} на ${timeframe} - входим в позицию`,
+          );
+          await this.enterPosition(bot, symbol, timeframe);
+        }
       }
-    } else {
-      // Проверяем, можно ли войти в позицию
-      if (await this.canEnterPosition(bot, symbol, timeframe)) {
-        this.logger.log(
-          `✅ Направления совпадают для ${symbol} на ${timeframe} - входим в позицию`,
-        );
-        await this.enterPosition(bot, symbol, timeframe);
-      }
+    } catch (error) {
+      this.logger.error(`❌ Ошибка в processTrendChange: ${error.message}`);
     }
   }
 
@@ -443,12 +326,7 @@ export class TrendPivotStrategy implements Strategy {
     const timeframes = ['15m', '1h'];
 
     for (const timeframe of timeframes) {
-      const state = this.trendStates.get(
-        this.getTrendStateKey(bot.name, symbol, timeframe),
-      );
-      if (state) {
-        await this.processTrendChange(bot, symbol, timeframe);
-      }
+      await this.processTrendChange(bot, symbol, timeframe);
     }
   }
 
@@ -458,16 +336,16 @@ export class TrendPivotStrategy implements Strategy {
     symbol: string,
     timeframe: string,
   ): Promise<void> {
-    const existing = await this.store.findOpen(bot.name, symbol);
-    if (existing) {
-      this.logger.log(`⚠️ Позиция ${symbol} уже открыта для ${bot.name}`);
-      return;
-    }
-
-    const symbolId = toBitgetSymbolId(symbol);
-    const price = '0'; // Цена будет получена при исполнении
-
     try {
+      const existing = await this.store.findOpen(bot.name, symbol);
+      if (existing) {
+        this.logger.log(`⚠️ Позиция ${symbol} уже открыта для ${bot.name}`);
+        return;
+      }
+
+      const symbolId = toBitgetSymbolId(symbol);
+      const price = '0'; // Цена будет получена при исполнении
+
       // Устанавливаем плечо
       if (bot.cfg.smartvol?.leverage) {
         await bot.exchange.ensureLeverage?.(
@@ -502,10 +380,18 @@ export class TrendPivotStrategy implements Strategy {
         String(baseUsd),
       );
 
+      // Сохраняем исходное направление тренда в meta позиции
+      position.meta = position.meta || {};
+      position.meta.originalDirection = await this.getCurrentTrendDirection(
+        symbol,
+        timeframe,
+      );
+      await this.store.updatePosition(position);
+
       await bot.notify(
         `✅ ${bot.name}: TREND ENTRY ${symbol} на ${timeframe}\n` +
           `💰 Размер: $${baseUsd}\n` +
-          `📊 Направление: ${this.getTrendDirection(this.calculateTotalTrendCounts(this.getOrCreateTrendState(bot.name, symbol, timeframe)))}`,
+          `📊 Направление: ${await this.getCurrentTrendDirection(symbol, timeframe)}`,
       );
     } catch (error) {
       this.logger.error(
@@ -517,23 +403,81 @@ export class TrendPivotStrategy implements Strategy {
     }
   }
 
-  // Выход из позиции
+  // Выход из позиции с частичным закрытием
   private async exitPosition(
     bot: any,
     symbol: string,
     position: any,
+    timeframe: string,
   ): Promise<void> {
     try {
-      // Закрываем позицию на бирже
-      await bot.exchange.flashClose?.(symbol, 'long');
-
-      // Закрываем позицию в БД
-      await this.store.close(position, '0');
-
-      await bot.notify(
-        `🛑 ${bot.name}: TREND EXIT ${symbol}\n` +
-          `📊 Тренд изменился - позиция закрыта`,
+      // Получаем количество подтверждений для исходного направления позиции
+      // (когда тренд меняется, мы закрываем позицию в зависимости от силы исходного тренда)
+      const originalDirection = position.meta?.originalDirection || 'long';
+      const confirmationCount = await this.getTrendConfirmationCount(
+        symbol,
+        timeframe,
+        originalDirection,
       );
+
+      let closePercentage = 100; // По умолчанию закрываем всю позицию
+
+      // Логика частичного закрытия в зависимости от количества подтверждений
+      if (confirmationCount === 1) {
+        closePercentage = 100; // Закрываем всю позицию
+      } else if (confirmationCount === 2) {
+        closePercentage = 50; // Закрываем 50%
+      } else if (confirmationCount >= 3) {
+        closePercentage = 33; // Закрываем 33%
+      }
+
+      this.logger.log(
+        `🔄 Закрываем ${closePercentage}% позиции ${symbol} (${confirmationCount} подтверждений)`,
+      );
+
+      if (closePercentage === 100) {
+        // Закрываем всю позицию
+        await bot.exchange.flashClose?.(symbol, 'long');
+        await this.store.close(position, '0');
+
+        await bot.notify(
+          `🛑 ${bot.name}: TREND EXIT ${symbol}\n` +
+            `📊 Тренд изменился - позиция полностью закрыта`,
+        );
+      } else {
+        // Частичное закрытие
+        const currentAmount = parseFloat(position.amountUsd);
+        const closeAmount = (currentAmount * closePercentage) / 100;
+
+        // Закрываем часть позиции на бирже
+        try {
+          await bot.exchange.flashClose?.(
+            symbol,
+            'long',
+            closeAmount.toString(),
+          );
+        } catch (error) {
+          this.logger.warn(
+            `⚠️ Частичное закрытие не поддерживается, закрываем всю позицию: ${error.message}`,
+          );
+          await bot.exchange.flashClose?.(symbol, 'long');
+          await this.store.close(position, '0');
+          return;
+        }
+
+        // Обновляем позицию в БД с информацией о закрытых подтверждениях
+        position.amountUsd = (currentAmount - closeAmount).toString();
+        position.meta = position.meta || {};
+        position.meta.closedConfirmations =
+          (position.meta.closedConfirmations || 0) + 1;
+        await this.store.updatePosition(position);
+
+        await bot.notify(
+          `🔄 ${bot.name}: PARTIAL TREND EXIT ${symbol}\n` +
+            `📊 Закрыто ${closePercentage}% позиции (${confirmationCount} подтверждений)\n` +
+            `💰 Остаток: $${(currentAmount - closeAmount).toFixed(2)}`,
+        );
+      }
     } catch (error) {
       this.logger.error(
         `❌ Ошибка при выходе из позиции ${symbol}: ${error.message}`,
