@@ -106,11 +106,14 @@ export class TrendPivotStrategy implements Strategy {
         '4h',
       );
 
-      // Входим только если направления совпадают и не нейтральные
+      // Входим только если:
+      // 1. Есть 4ч тренд (определяет общее направление)
+      // 2. И пришло подтверждение на 15м/1ч в том же направлении
+      // 3. И направления совпадают
       return !!(
-        timeframeDirection &&
-        fourHourDirection &&
-        timeframeDirection === fourHourDirection
+        fourHourDirection && // Должен быть 4ч тренд
+        timeframeDirection && // Должно быть подтверждение на 15м/1ч
+        timeframeDirection === fourHourDirection // Направления должны совпадать
       );
     } catch (error) {
       this.logger.error(`❌ Ошибка проверки входа в позицию: ${error.message}`);
@@ -123,22 +126,30 @@ export class TrendPivotStrategy implements Strategy {
     bot: any,
     symbol: string,
     timeframe: string,
+    position: any,
   ): Promise<boolean> {
     try {
-      const timeframeDirection = await this.getCurrentTrendDirection(
-        symbol,
-        timeframe,
-      );
+      // Получаем исходное направление позиции
+      const originalDirection = position.meta?.originalDirection || 'long';
+
+      // Получаем текущий 4ч тренд
       const fourHourDirection = await this.getCurrentTrendDirection(
         symbol,
         '4h',
       );
 
-      // Выходим если направления не совпадают или один из трендов изменился
-      return (
-        !timeframeDirection ||
-        !fourHourDirection ||
-        timeframeDirection !== fourHourDirection
+      // Получаем текущий тренд на 15м/1ч
+      const timeframeDirection = await this.getCurrentTrendDirection(
+        symbol,
+        timeframe,
+      );
+
+      // Выходим если:
+      // 1. 4ч тренд развернулся на противоположный (закрываем ВСЮ позицию)
+      // 2. ИЛИ 15м/1ч тренд изменился на противоположный (частичное закрытие)
+      return !!(
+        (fourHourDirection && fourHourDirection !== originalDirection) || // 4ч разворот
+        (timeframeDirection && timeframeDirection !== originalDirection) // 15м/1ч разворот
       );
     } catch (error) {
       this.logger.error(
@@ -296,18 +307,19 @@ export class TrendPivotStrategy implements Strategy {
       const existing = await this.store.findOpen(bot.name, symbol);
 
       if (existing) {
-        // Проверяем, нужно ли выйти из позиции
-        if (await this.shouldExitPosition(bot, symbol, timeframe)) {
+        // Проверяем, нужно ли выйти из позиции (только при развороте 4ч тренда)
+        if (await this.shouldExitPosition(bot, symbol, timeframe, existing)) {
           this.logger.log(
-            `🔄 Тренд изменился для ${symbol} на ${timeframe} - выходим из позиции`,
+            `🔄 4ч тренд развернулся для ${symbol} - выходим из позиции`,
           );
           await this.exitPosition(bot, symbol, existing, timeframe);
         }
       } else {
         // Проверяем, можно ли войти в позицию
+        // (нужен 4ч тренд + подтверждение на 15м/1ч в том же направлении)
         if (await this.canEnterPosition(bot, symbol, timeframe)) {
           this.logger.log(
-            `✅ Направления совпадают для ${symbol} на ${timeframe} - входим в позицию`,
+            `✅ 4ч тренд + подтверждение на ${timeframe} совпадают - входим в позицию`,
           );
           await this.enterPosition(bot, symbol, timeframe);
         }
@@ -344,7 +356,16 @@ export class TrendPivotStrategy implements Strategy {
       }
 
       const symbolId = toBitgetSymbolId(symbol);
-      const price = '0'; // Цена будет получена при исполнении
+      // Получаем текущую цену для уведомления
+      let currentPrice = '0';
+      try {
+        const ticker = await bot.exchange.getTicker?.(symbolId);
+        currentPrice = ticker?.last || '0';
+      } catch (error) {
+        this.logger.warn(
+          `⚠️ Не удалось получить цену для ${symbol}: ${error.message}`,
+        );
+      }
 
       // Устанавливаем плечо
       if (bot.cfg.smartvol?.leverage) {
@@ -376,7 +397,7 @@ export class TrendPivotStrategy implements Strategy {
       const position = await this.store.open(
         bot.name,
         symbol,
-        price,
+        currentPrice,
         String(baseUsd),
       );
 
@@ -391,6 +412,7 @@ export class TrendPivotStrategy implements Strategy {
       await bot.notify(
         `✅ ${bot.name}: TREND ENTRY ${symbol} на ${timeframe}\n` +
           `💰 Размер: $${baseUsd}\n` +
+          `💵 Цена входа: $${currentPrice}\n` +
           `📊 Направление: ${await this.getCurrentTrendDirection(symbol, timeframe)}`,
       );
     } catch (error) {
@@ -411,29 +433,52 @@ export class TrendPivotStrategy implements Strategy {
     timeframe: string,
   ): Promise<void> {
     try {
-      // Получаем количество подтверждений для исходного направления позиции
-      // (когда тренд меняется, мы закрываем позицию в зависимости от силы исходного тренда)
+      // Определяем тип разворота для логики закрытия
       const originalDirection = position.meta?.originalDirection || 'long';
-      const confirmationCount = await this.getTrendConfirmationCount(
+      const fourHourDirection = await this.getCurrentTrendDirection(
+        symbol,
+        '4h',
+      );
+      const timeframeDirection = await this.getCurrentTrendDirection(
         symbol,
         timeframe,
-        originalDirection,
       );
 
       let closePercentage = 100; // По умолчанию закрываем всю позицию
+      let isFourHourReversal = false; // Флаг для 4ч разворота
+      let confirmationCount = 1; // Количество подтверждений для логирования
 
-      // Логика частичного закрытия в зависимости от количества подтверждений
-      if (confirmationCount === 1) {
-        closePercentage = 100; // Закрываем всю позицию
-      } else if (confirmationCount === 2) {
-        closePercentage = 50; // Закрываем 50%
-      } else if (confirmationCount >= 3) {
-        closePercentage = 33; // Закрываем 33%
+      // Проверяем тип разворота
+      if (fourHourDirection && fourHourDirection !== originalDirection) {
+        // 4ч разворот - закрываем ВСЮ позицию
+        isFourHourReversal = true;
+        closePercentage = 100;
+        this.logger.log(
+          `🔄 4ч тренд развернулся с ${originalDirection} на ${fourHourDirection} - закрываем всю позицию`,
+        );
+      } else if (
+        timeframeDirection &&
+        timeframeDirection !== originalDirection
+      ) {
+        // 15м/1ч разворот - частичное закрытие в зависимости от количества подтверждений
+        const confirmationCount = await this.getTrendConfirmationCount(
+          symbol,
+          timeframe,
+          originalDirection,
+        );
+
+        if (confirmationCount === 1) {
+          closePercentage = 100; // Закрываем всю позицию
+        } else if (confirmationCount === 2) {
+          closePercentage = 50; // Закрываем 50%
+        } else if (confirmationCount >= 3) {
+          closePercentage = 33; // Закрываем 33%
+        }
+
+        this.logger.log(
+          `🔄 ${timeframe} тренд изменился с ${originalDirection} на ${timeframeDirection} - закрываем ${closePercentage}% позиции (${confirmationCount} подтверждений)`,
+        );
       }
-
-      this.logger.log(
-        `🔄 Закрываем ${closePercentage}% позиции ${symbol} (${confirmationCount} подтверждений)`,
-      );
 
       if (closePercentage === 100) {
         // Закрываем всю позицию
@@ -442,7 +487,7 @@ export class TrendPivotStrategy implements Strategy {
 
         await bot.notify(
           `🛑 ${bot.name}: TREND EXIT ${symbol}\n` +
-            `📊 Тренд изменился - позиция полностью закрыта`,
+            `📊 ${isFourHourReversal ? '4ч тренд развернулся' : `${timeframe} тренд изменился`} - позиция полностью закрыта`,
         );
       } else {
         // Частичное закрытие
