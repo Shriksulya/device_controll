@@ -302,7 +302,7 @@ export class TrendPivotStrategy implements Strategy {
     bot: any,
     symbol: string,
     timeframe: string,
-    alertPrice?: string,
+    alert: any,
   ): Promise<void> {
     try {
       const existing = await this.store.findOpen(bot.name, symbol);
@@ -318,7 +318,7 @@ export class TrendPivotStrategy implements Strategy {
             symbol,
             existing,
             timeframe,
-            alertPrice || '0',
+            alert.price,
           );
         }
       } else {
@@ -328,7 +328,7 @@ export class TrendPivotStrategy implements Strategy {
           this.logger.log(
             `✅ 4ч тренд + подтверждение на ${timeframe} совпадают - входим в позицию`,
           );
-          await this.enterPosition(bot, symbol, timeframe, alertPrice || '0');
+          await this.enterPosition(bot, symbol, timeframe, alert.price);
         }
       }
     } catch (error) {
@@ -345,7 +345,8 @@ export class TrendPivotStrategy implements Strategy {
     const timeframes = ['15m', '1h'];
 
     for (const timeframe of timeframes) {
-      await this.processTrendChange(bot, symbol, timeframe);
+      // Для 4h изменений передаем пустой объект (не влияет на позиции)
+      await this.processTrendChange(bot, symbol, timeframe, { price: '0' });
     }
   }
 
