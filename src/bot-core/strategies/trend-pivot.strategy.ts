@@ -302,7 +302,7 @@ export class TrendPivotStrategy implements Strategy {
     bot: any,
     symbol: string,
     timeframe: string,
-    alert: any,
+    price: string, // ← Это цена, а не объект алерта!
   ): Promise<void> {
     try {
       const existing = await this.store.findOpen(bot.name, symbol);
@@ -318,7 +318,7 @@ export class TrendPivotStrategy implements Strategy {
             symbol,
             existing,
             timeframe,
-            alert.price || '0',
+            price, // ← Используем price напрямую
           );
         }
       } else {
@@ -329,10 +329,8 @@ export class TrendPivotStrategy implements Strategy {
             `✅ 4ч тренд + подтверждение на ${timeframe} совпадают - входим в позицию`,
           );
           // Логируем цену для отладки
-          this.logger.log(
-            `🔍 DEBUG: alert.price=${alert.price}, тип=${typeof alert.price}`,
-          );
-          await this.enterPosition(bot, symbol, timeframe, alert.price);
+          this.logger.log(`🔍 DEBUG: price=${price}, тип=${typeof price}`);
+          await this.enterPosition(bot, symbol, timeframe, price); // ← Используем price напрямую
         }
       }
     } catch (error) {
@@ -349,9 +347,7 @@ export class TrendPivotStrategy implements Strategy {
     const timeframes = ['15m', '1h'];
 
     for (const timeframe of timeframes) {
-      // Для 4h изменений передаем пустой объект (не влияет на позиции)
-      // Но не вызываем processTrendChange, так как это может привести к ошибкам
-      // Вместо этого просто проверяем существующие позиции
+      // Для 4h изменений просто проверяем существующие позиции
       const existing = await this.store.findOpen(bot.name, symbol);
       if (existing) {
         // Проверяем, нужно ли выйти из позиции при изменении 4ч тренда
@@ -381,7 +377,7 @@ export class TrendPivotStrategy implements Strategy {
     try {
       // Логируем цену для отладки
       this.logger.log(
-        `🔍 ENTER DEBUG: entryPrice=${entryPrice}, тип=${typeof entryPrice}`,
+        `🔍 ENTER DEBUG: entryPrice=${entryPrice}, тип=${typeof entryPrice}, JSON=${JSON.stringify(entryPrice)}`,
       );
 
       const existing = await this.store.findOpen(bot.name, symbol);
@@ -419,6 +415,9 @@ export class TrendPivotStrategy implements Strategy {
       );
 
       // Создаем позицию в БД
+      this.logger.log(
+        `🔍 STORE CALL: bot.name=${bot.name}, symbol=${symbol}, entryPrice=${entryPrice}, baseUsd=${baseUsd}`,
+      );
       const position = await this.store.open(
         bot.name,
         symbol,
