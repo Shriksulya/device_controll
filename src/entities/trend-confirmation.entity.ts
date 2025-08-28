@@ -28,8 +28,8 @@ export class TrendConfirmationEntity {
   @CreateDateColumn()
   createdAt: Date;
 
-  @Column({ type: 'timestamp with time zone', nullable: true })
-  expiresAt?: Date; // TTL = 2×tf
+  @Column({ type: 'timestamp with time zone' })
+  expiresAt: Date; // TTL = 2×tf
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   source?: string;

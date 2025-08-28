@@ -37,7 +37,7 @@ export class TrendPivotStrategy implements Strategy {
         direction,
         source,
         meta,
-        // expiresAt не используется для trend-pivot
+        expiresAt: new Date('2030-12-31T23:59:59Z'), // Устанавливаем далекую дату в будущем
       });
 
       await this.trendRepo.save(confirmation);
