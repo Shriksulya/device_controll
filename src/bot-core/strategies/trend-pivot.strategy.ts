@@ -313,7 +313,13 @@ export class TrendPivotStrategy implements Strategy {
           this.logger.log(
             `🔄 4ч тренд развернулся для ${symbol} - выходим из позиции`,
           );
-          await this.exitPosition(bot, symbol, existing, timeframe);
+          await this.exitPosition(
+            bot,
+            symbol,
+            existing,
+            timeframe,
+            alertPrice || '0',
+          );
         }
       } else {
         // Проверяем, можно ли войти в позицию
@@ -358,8 +364,6 @@ export class TrendPivotStrategy implements Strategy {
       }
 
       const symbolId = toBitgetSymbolId(symbol);
-      // Используем цену из алерта для уведомления
-      const currentPrice = entryPrice;
 
       // Устанавливаем плечо
       if (bot.cfg.smartvol?.leverage) {
@@ -391,7 +395,7 @@ export class TrendPivotStrategy implements Strategy {
       const position = await this.store.open(
         bot.name,
         symbol,
-        currentPrice,
+        entryPrice, // Используем цену из алерта напрямую
         String(baseUsd),
       );
 
@@ -428,7 +432,7 @@ export class TrendPivotStrategy implements Strategy {
           `📊 Направление: ${timeframeDirection}\n` +
           `⏰ Таймфрейм входа: ${timeframe}\n` +
           `💰 Размер позиции: $${baseUsd}\n` +
-          `💵 Цена входа: $${currentPrice}\n` +
+          `💵 Цена входа: $${entryPrice}\n` +
           `🔍 Подтверждения:\n` +
           `   • 4ч: ${fourHourDirection} (${fourHourConfirmations} подтверждений)\n` +
           `   • ${timeframe}: ${timeframeDirection} (${timeframeConfirmations} подтверждений)\n` +
@@ -450,6 +454,7 @@ export class TrendPivotStrategy implements Strategy {
     symbol: string,
     position: any,
     timeframe: string,
+    exitPrice: string,
   ): Promise<void> {
     try {
       // Определяем тип разворота для логики закрытия
@@ -504,21 +509,10 @@ export class TrendPivotStrategy implements Strategy {
         await bot.exchange.flashClose?.(symbol, 'long');
         await this.store.close(position, '0');
 
-        // Получаем текущую цену для расчета PnL
-        let exitPrice = parseFloat(position.avgEntryPrice); // По умолчанию используем цену входа
-        try {
-          const symbolId = toBitgetSymbolId(symbol);
-          const ticker = await bot.exchange.getTicker?.(symbolId);
-          exitPrice = parseFloat(ticker?.last || position.avgEntryPrice);
-        } catch (error) {
-          this.logger.warn(
-            `⚠️ Не удалось получить текущую цену для ${symbol}: ${error.message}`,
-          );
-        }
-
         // Получаем информацию для подробного уведомления
         const entryPrice = parseFloat(position.avgEntryPrice);
-        const pnl = exitPrice - entryPrice;
+        const exitPriceValue = parseFloat(exitPrice);
+        const pnl = exitPriceValue - entryPrice;
         const pnlPercent = (pnl / entryPrice) * 100;
         const pnlColor = pnl >= 0 ? '🟢' : '🔴';
 
@@ -527,7 +521,7 @@ export class TrendPivotStrategy implements Strategy {
             `📊 Причина: ${isFourHourReversal ? '4ч тренд развернулся' : `${timeframe} тренд изменился`}\n` +
             `⏰ Таймфрейм: ${timeframe}\n` +
             `💵 Цена входа: $${entryPrice.toFixed(4)}\n` +
-            `💵 Цена выхода: $${exitPrice.toFixed(4)}\n` +
+            `💵 Цена выхода: $${exitPriceValue.toFixed(4)}\n` +
             `📈 PnL: ${pnlColor} $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)\n` +
             `💰 Позиция полностью закрыта`,
         );
@@ -559,20 +553,10 @@ export class TrendPivotStrategy implements Strategy {
           (position.meta.closedConfirmations || 0) + 1;
         await this.store.updatePosition(position);
 
-        // Получаем текущую цену для расчета PnL
-        let exitPrice = parseFloat(position.avgEntryPrice);
-        try {
-          const symbolId = toBitgetSymbolId(symbol);
-          const ticker = await bot.exchange.getTicker?.(symbolId);
-          exitPrice = parseFloat(ticker?.last || position.avgEntryPrice);
-        } catch (error) {
-          this.logger.warn(
-            `⚠️ Не удалось получить текущую цену для ${symbol}: ${error.message}`,
-          );
-        }
-
+        // Используем цену из алерта для расчета PnL
         const entryPrice = parseFloat(position.avgEntryPrice);
-        const pnl = exitPrice - entryPrice;
+        const exitPriceValue = parseFloat(exitPrice);
+        const pnl = exitPriceValue - entryPrice;
         const pnlPercent = (pnl / entryPrice) * 100;
         const pnlColor = pnl >= 0 ? '🟢' : '🔴';
 
@@ -581,7 +565,7 @@ export class TrendPivotStrategy implements Strategy {
             `📊 Причина: ${timeframe} тренд изменился\n` +
             `⏰ Таймфрейм: ${timeframe}\n` +
             `💵 Цена входа: $${entryPrice.toFixed(4)}\n` +
-            `💵 Цена выхода: $${exitPrice.toFixed(4)}\n` +
+            `💵 Цена выхода: $${exitPriceValue.toFixed(4)}\n` +
             `📈 PnL: ${pnlColor} $${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)\n` +
             `💰 Закрыто: ${closePercentage}% позиции\n` +
             `💸 Остаток: $${(currentAmount - closeAmount).toFixed(2)}`,
