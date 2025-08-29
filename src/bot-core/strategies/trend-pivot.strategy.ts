@@ -580,8 +580,10 @@ export class TrendPivotStrategy implements Strategy {
           );
         }
 
-        const pnl = exitPriceValue - entryPrice;
-        const pnlPercent = (pnl / entryPrice) * 100;
+        // Используем стандартный метод расчета PNL из PositionsStore
+        const pnlData = this.store.calculatePnL(position, exitPriceValue);
+        const pnl = parseFloat(pnlData.pnl);
+        const pnlPercent = parseFloat(pnlData.pnlPercent);
         const pnlColor = pnl >= 0 ? '🟢' : '🔴';
 
         await bot.notify(
@@ -640,8 +642,10 @@ export class TrendPivotStrategy implements Strategy {
           );
         }
 
-        const pnl = exitPriceValue - entryPrice;
-        const pnlPercent = (pnl / entryPrice) * 100;
+        // Используем стандартный метод расчета PNL из PositionsStore
+        const pnlData = this.store.calculatePnL(position, exitPriceValue);
+        const pnl = parseFloat(pnlData.pnl);
+        const pnlPercent = parseFloat(pnlData.pnlPercent);
         const pnlColor = pnl >= 0 ? '🟢' : '🔴';
 
         await bot.notify(
